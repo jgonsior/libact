@@ -5,6 +5,8 @@ active learning algorithm.
 
 Standalone hintsvm can be retrieved from https://github.com/yangarbiter/hintsvm
 """
+import operator
+
 import numpy as np
 
 from libact.base.interfaces import QueryStrategy
@@ -158,3 +160,34 @@ class HintSVM(QueryStrategy):
         p_val = [abs(float(val[0])) for val in p_val]
         idx = int(np.argmax(p_val))
         return unlabeled_entry_ids[idx]
+
+    def make_n_queries(self, batch_size):
+        dataset = self.dataset
+        unlabeled_entry_ids, unlabeled_pool = dataset.get_unlabeled_entries()
+        labeled_pool, y = dataset.get_labeled_entries()
+        if len(np.unique(y)) > 2:
+            raise ValueError("HintSVM query strategy support binary class "
+                "active learning only. Found %s classes" % len(np.unique(y)))
+
+        hint_pool_idx = self.random_state_.choice(
+            len(unlabeled_pool), int(len(unlabeled_pool) * self.p))
+        hint_pool = np.array(unlabeled_pool)[hint_pool_idx]
+
+        weight = [1.0 for _ in range(len(labeled_pool))] +\
+                 [(self.ch / self.cl) for _ in range(len(hint_pool))]
+        y = list(y) + [0 for _ in range(len(hint_pool))]
+        X = [x for x in labeled_pool] +\
+            [x for x in hint_pool]
+
+        p_val = hintsvm_query(
+            np.array(X, dtype=np.float64),
+            np.array(y, dtype=np.float64),
+            np.array(weight, dtype=np.float64),
+            np.array(unlabeled_pool, dtype=np.float64),
+            self.svm_params)
+
+        p_val = [abs(float(val[0])) for val in p_val]
+        ind = list(enumerate(p_val))
+        top_n = sorted(ind, key=operator.itemgetter(1))[-batch_size:]
+        ask_ids = list(reversed([i for i, v in top_n]))
+        return [unlabeled_entry_ids[i] for i in ask_ids]

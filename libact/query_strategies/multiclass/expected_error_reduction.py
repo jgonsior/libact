@@ -1,6 +1,7 @@
 """Expected Error Reduction
 """
 import copy
+import operator
 
 import numpy as np
 
@@ -104,3 +105,34 @@ class EER(QueryStrategy):
         ask_idx = self.random_state_.choice(choices)
 
         return unlabeled_entry_ids[ask_idx]
+
+    def make_n_queries(self, batch_size):
+        dataset = self.dataset
+        X, y = dataset.get_labeled_entries()
+        unlabeled_entry_ids, X_pool = dataset.get_unlabeled_entries()
+
+        classes = np.unique(y)
+        n_classes = len(classes)
+
+        self.model.train(dataset)
+        proba = self.model.predict_proba(X_pool)
+
+        scores = []
+        for i, x in enumerate(X_pool):
+            score = []
+            for yi in range(n_classes):
+                m = copy.deepcopy(self.model)
+                m.train(Dataset(np.vstack((X, [x])), y + [yi]))
+                p = m.predict_proba(X_pool)
+
+                if self.loss == '01':  # 0/1 loss
+                    score.append(proba[i, yi] * np.sum(1-np.max(p, axis=1)))
+                elif self.loss == 'log': # log loss
+                    score.append(proba[i, yi] * -np.sum(p * np.log(p)))
+            scores.append(np.sum(score))
+
+        ind = list(enumerate(scores))
+        top_n = sorted(ind, key=operator.itemgetter(1))[-batch_size:]
+        ask_ids = list(reversed([i for i, v in top_n]))
+
+        return [unlabeled_entry_ids[i] for i in ask_ids]

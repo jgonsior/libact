@@ -152,3 +152,55 @@ class QUIRE(QueryStrategy):
                 query_index = each_index
                 min_eva = eva
         return query_index
+
+    def make_n_queries(self, batch_size):
+        L = self.L
+        Lindex = self.Lindex
+        Uindex = self.Uindex
+        query_index = -1
+        min_eva = np.inf
+        y_labeled = np.array([label for label in self.y if label is not None])
+        det_Laa = np.linalg.det(L[np.ix_(Uindex, Uindex)])
+        # efficient computation of inv(Laa)
+        M3 = np.dot(self.K[np.ix_(Uindex, Lindex)],
+                    np.linalg.inv(self.lmbda * np.eye(len(Lindex))))
+        M2 = np.dot(M3, self.K[np.ix_(Lindex, Uindex)])
+        M1 = self.lmbda * np.eye(len(Uindex)) + self.K[np.ix_(Uindex, Uindex)]
+        inv_Laa = M1 - M2
+        iList = list(range(len(Uindex)))
+        if len(iList) == 1:
+            return Uindex[0]
+        ids = {}
+        for i, each_index in enumerate(Uindex):
+            # go through all unlabeled instances and compute their evaluation
+            # values one by one
+            Uindex_r = Uindex[:]
+            Uindex_r.remove(each_index)
+            iList_r = iList[:]
+            iList_r.remove(i)
+            inv_Luu = inv_Laa[np.ix_(iList_r, iList_r)] - 1 / inv_Laa[i, i] * \
+                np.dot(inv_Laa[iList_r, i], inv_Laa[iList_r, i].T)
+            tmp = np.dot(
+                L[each_index][Lindex] -
+                np.dot(
+                    np.dot(
+                        L[each_index][Uindex_r],
+                        inv_Luu
+                    ),
+                    L[np.ix_(Uindex_r, Lindex)]
+                ),
+                y_labeled,
+            )
+            eva = L[each_index][each_index] - \
+                det_Laa / L[each_index][each_index] + 2 * np.abs(tmp)
+
+            if len(ids) < batch_size:
+                ids[each_index] = eva
+                min_eva = max(ids.values())
+            elif eva < min_eva:
+                ids[each_index] = eva
+                min_eva = max(ids.values())
+                ids.pop(ids.get(min_eva))
+                min_eva = max(ids.values())
+
+        return ids.keys()

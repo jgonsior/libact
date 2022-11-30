@@ -2,6 +2,8 @@
 """
 from __future__ import division
 
+import operator
+
 import numpy as np
 from sklearn.cluster import KMeans
 from scipy.optimize import minimize
@@ -152,6 +154,38 @@ class DWUS(QueryStrategy):
         ask_id = np.argmax(expected_error * p_x)
 
         return unlabeled_entry_ids[ask_id]
+
+    def make_n_queries(self, batch_size):
+        unlabeled_entry_ids, _ = self.dataset.get_unlabeled_entries()
+        labeled_entry_ids = np.array([eid
+                                      for eid, x in enumerate(self.dataset.data)
+                                      if x[1] != None])
+        labels = np.array([x[1]
+                           for eid, x in enumerate(self.dataset.data)
+                           if x[1] != None]).reshape(-1, 1)
+        centers = self.kmeans_.cluster_centers_
+        P_k_x = self.P_k_x
+        p_x = self.p_x[list(unlabeled_entry_ids)]
+
+        clf = DensityWeightedLogisticRegression(P_k_x[labeled_entry_ids, :],
+                                                centers,
+                                                self.C)
+        clf.train(labeled_entry_ids, labels)
+        P_y_k = clf.predict()
+
+        P_y_x = np.zeros(len(unlabeled_entry_ids))
+        for k, center in enumerate(centers):
+            P_y_x += P_y_k[k] * P_k_x[unlabeled_entry_ids, k]
+
+        # binary case
+        expected_error = P_y_x
+        expected_error[P_y_x >= 0.5] = 1. - P_y_x[P_y_x >= 0.5]
+
+        ind = list(enumerate(expected_error * p_x))
+        top_n = sorted(ind, key=operator.itemgetter(1))[-batch_size:]
+        ask_ids = list(reversed([i for i, v in top_n]))
+
+        return [unlabeled_entry_ids[i] for i in ask_ids]
 
 class DensityWeightedLogisticRegression(object):
     """Density Weighted Logistic Regression

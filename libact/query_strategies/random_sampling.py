@@ -49,3 +49,14 @@ class RandomSampling(QueryStrategy):
         entry_id = unlabeled_entry_ids[
             self.random_state_.randint(0, len(unlabeled_entry_ids))]
         return entry_id
+
+    def make_n_queries(self, batch_size):
+        dataset = self.dataset
+        unlabeled_entry_ids, _ = dataset.get_unlabeled_entries()
+        ids = []
+        while len(ids < batch_size):
+            entry_id = unlabeled_entry_ids[
+                self.random_state_.randint(0, len(unlabeled_entry_ids))]
+            if entry_id not in ids:
+                ids.append(entry_id)
+        return ids

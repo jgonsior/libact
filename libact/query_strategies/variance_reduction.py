@@ -80,6 +80,24 @@ class VarianceReduction(QueryStrategy):
 
         return unlabeled_entry_ids[errors.index(min(errors))]
 
+    def make_n_queries(self,batch_size):
+        Xlabeled, y = self.dataset.get_labeled_entries()
+        Xlabeled = np.array(Xlabeled)
+        y = list(y)
+
+        unlabeled_entry_ids, X_pool = self.dataset.get_unlabeled_entries()
+
+        label_count = self.dataset.get_num_of_labels()
+
+        clf = copy.copy(self.model)
+        clf.train(Dataset(Xlabeled, y))
+
+        p = Pool(self.n_jobs)
+        errors = p.map(_E, [(Xlabeled, y, x, clf, label_count, self.sigma,
+                             self.model) for x in X_pool])
+        p.terminate()
+        return unlabeled_entry_ids[errors.index(np.argpartition(errors, batch_size)[:batch_size])]
+
 
 def _Phi(sigma, PI, X, epi, ex, label_count, feature_count):
     ret = estVar(sigma, PI, X, epi, ex)
