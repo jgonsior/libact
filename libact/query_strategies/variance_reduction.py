@@ -8,7 +8,7 @@ from libact.base.interfaces import QueryStrategy
 from libact.base.dataset import Dataset
 import libact.models
 from libact.query_strategies._variance_reduction import estVar
-from libact.utils import inherit_docstring_from, zip
+from libact.utils import inherit_docstring_from
 
 
 class VarianceReduction(QueryStrategy):
@@ -51,14 +51,14 @@ class VarianceReduction(QueryStrategy):
 
     def __init__(self, *args, **kwargs):
         super(VarianceReduction, self).__init__(*args, **kwargs)
-        model = kwargs.pop('model', None)
+        model = kwargs.pop("model", None)
         if isinstance(model, str):
             self.model = getattr(libact.models, model)()
         else:
             self.model = model
-        self.optimality = kwargs.pop('optimality', 'trace')
-        self.sigma = kwargs.pop('sigma', 1.0)
-        self.n_jobs = kwargs.pop('n_jobs', 1)
+        self.optimality = kwargs.pop("optimality", "trace")
+        self.sigma = kwargs.pop("sigma", 1.0)
+        self.n_jobs = kwargs.pop("n_jobs", 1)
 
     @inherit_docstring_from(QueryStrategy)
     def make_query(self):
@@ -74,13 +74,18 @@ class VarianceReduction(QueryStrategy):
         clf.train(Dataset(Xlabeled, y))
 
         p = Pool(self.n_jobs)
-        errors = p.map(_E, [(Xlabeled, y, x, clf, label_count, self.sigma,
-                             self.model) for x in X_pool])
+        errors = p.map(
+            _E,
+            [
+                (Xlabeled, y, x, clf, label_count, self.sigma, self.model)
+                for x in X_pool
+            ],
+        )
         p.terminate()
 
         return unlabeled_entry_ids[errors.index(min(errors))]
 
-    def make_n_queries(self,batch_size):
+    def make_n_queries(self, batch_size):
         Xlabeled, y = self.dataset.get_labeled_entries()
         Xlabeled = np.array(Xlabeled)
         y = list(y)
@@ -93,10 +98,15 @@ class VarianceReduction(QueryStrategy):
         clf.train(Dataset(Xlabeled, y))
 
         p = Pool(self.n_jobs)
-        errors = p.map(_E, [(Xlabeled, y, x, clf, label_count, self.sigma,
-                             self.model) for x in X_pool])
+        errors = p.map(
+            _E,
+            [
+                (Xlabeled, y, x, clf, label_count, self.sigma, self.model)
+                for x in X_pool
+            ],
+        )
         p.terminate()
-        return unlabeled_entry_ids[errors.index(np.argpartition(errors, batch_size)[:batch_size])]
+        return unlabeled_entry_ids[np.array(errors).argsort()[:batch_size]]
 
 
 def _Phi(sigma, PI, X, epi, ex, label_count, feature_count):
@@ -114,6 +124,7 @@ def _E(args):
         clf_ = copy.copy(model)
         clf_.train(Dataset(np.vstack((X, [qx])), np.append(y, i)))
         PI = sigmoid(clf_.predict_real(np.vstack((X, [qx]))))
-        ret += query_point[-1][i] * _Phi(sigma, PI[:-1], X, PI[-1], qx,
-                                         label_count, feature_count)
+        ret += query_point[-1][i] * _Phi(
+            sigma, PI[:-1], X, PI[-1], qx, label_count, feature_count
+        )
     return ret

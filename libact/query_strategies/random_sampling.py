@@ -1,7 +1,7 @@
 """Random Sampling
 """
 from libact.base.interfaces import QueryStrategy
-from libact.utils import inherit_docstring_from, seed_random_state, zip
+from libact.utils import inherit_docstring_from, seed_random_state
 
 
 class RandomSampling(QueryStrategy):
@@ -39,7 +39,7 @@ class RandomSampling(QueryStrategy):
     def __init__(self, dataset, **kwargs):
         super(RandomSampling, self).__init__(dataset, **kwargs)
 
-        random_state = kwargs.pop('random_state', None)
+        random_state = kwargs.pop("random_state", None)
         self.random_state_ = seed_random_state(random_state)
 
     @inherit_docstring_from(QueryStrategy)
@@ -47,7 +47,8 @@ class RandomSampling(QueryStrategy):
         dataset = self.dataset
         unlabeled_entry_ids, _ = dataset.get_unlabeled_entries()
         entry_id = unlabeled_entry_ids[
-            self.random_state_.randint(0, len(unlabeled_entry_ids))]
+            self.random_state_.randint(0, len(unlabeled_entry_ids))
+        ]
         return entry_id
 
     def make_n_queries(self, batch_size):
@@ -56,7 +57,8 @@ class RandomSampling(QueryStrategy):
         ids = []
         while len(ids < batch_size):
             entry_id = unlabeled_entry_ids[
-                self.random_state_.randint(0, len(unlabeled_entry_ids))]
+                self.random_state_.randint(0, len(unlabeled_entry_ids))
+            ]
             if entry_id not in ids:
                 ids.append(entry_id)
         return ids

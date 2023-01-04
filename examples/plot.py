@@ -10,6 +10,7 @@ import os
 
 import numpy as np
 import matplotlib.pyplot as plt
+
 try:
     from sklearn.model_selection import train_test_split
 except ImportError:
@@ -41,10 +42,11 @@ def run(trn_ds, tst_ds, lbr, model, qs, quota):
 def split_train_test(dataset_filepath, test_size, n_labeled):
     X, y = import_libsvm_sparse(dataset_filepath).format_sklearn()
 
-    X_train, X_test, y_train, y_test = \
-        train_test_split(X, y, test_size=test_size)
-    trn_ds = Dataset(X_train, np.concatenate(
-        [y_train[:n_labeled], [None] * (len(y_train) - n_labeled)]))
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
+    trn_ds = Dataset(
+        X_train,
+        np.concatenate([y_train[:n_labeled], [None] * (len(y_train) - n_labeled)]),
+    )
     tst_ds = Dataset(X_test, y_test)
     fully_labeled_trn_ds = Dataset(X_train, y_train)
 
@@ -55,22 +57,24 @@ def main():
     # Specifiy the parameters here:
     # path to your binary classification dataset
     dataset_filepath = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), 'diabetes.txt')
-    test_size = 0.33    # the percentage of samples in the dataset that will be
+        os.path.dirname(os.path.realpath(__file__)), "diabetes.txt"
+    )
+    test_size = 0.33  # the percentage of samples in the dataset that will be
     # randomly selected and assigned to the test set
-    n_labeled = 10      # number of samples that are initially labeled
+    n_labeled = 10  # number of samples that are initially labeled
 
     # Load dataset
-    trn_ds, tst_ds, y_train, fully_labeled_trn_ds = \
-        split_train_test(dataset_filepath, test_size, n_labeled)
+    trn_ds, tst_ds, y_train, fully_labeled_trn_ds = split_train_test(
+        dataset_filepath, test_size, n_labeled
+    )
     trn_ds2 = copy.deepcopy(trn_ds)
     lbr = IdealLabeler(fully_labeled_trn_ds)
 
-    quota = len(y_train) - n_labeled    # number of samples to query
+    quota = len(y_train) - n_labeled  # number of samples to query
 
     # Comparing UncertaintySampling strategy with RandomSampling.
     # model is the base learner, e.g. LogisticRegression, SVM ... etc.
-    qs = UncertaintySampling(trn_ds, method='lc', model=LogisticRegression())
+    qs = UncertaintySampling(trn_ds, method="lc", model=LogisticRegression())
     model = LogisticRegression()
     E_in_1, E_out_1 = run(trn_ds, tst_ds, lbr, model, qs, quota)
 
@@ -82,17 +86,22 @@ def main():
     # The x-axis is the number of queries, and the y-axis is the corresponding
     # error rate.
     query_num = np.arange(1, quota + 1)
-    plt.plot(query_num, E_in_1, 'b', label='qs Ein')
-    plt.plot(query_num, E_in_2, 'r', label='random Ein')
-    plt.plot(query_num, E_out_1, 'g', label='qs Eout')
-    plt.plot(query_num, E_out_2, 'k', label='random Eout')
-    plt.xlabel('Number of Queries')
-    plt.ylabel('Error')
-    plt.title('Experiment Result')
-    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05),
-               fancybox=True, shadow=True, ncol=5)
+    plt.plot(query_num, E_in_1, "b", label="qs Ein")
+    plt.plot(query_num, E_in_2, "r", label="random Ein")
+    plt.plot(query_num, E_out_1, "g", label="qs Eout")
+    plt.plot(query_num, E_out_2, "k", label="random Eout")
+    plt.xlabel("Number of Queries")
+    plt.ylabel("Error")
+    plt.title("Experiment Result")
+    plt.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.05),
+        fancybox=True,
+        shadow=True,
+        ncol=5,
+    )
     plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

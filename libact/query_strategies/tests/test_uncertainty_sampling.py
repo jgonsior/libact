@@ -5,7 +5,7 @@ from numpy.testing import assert_array_equal
 
 from libact.base.dataset import Dataset
 from libact.models import LogisticRegression, SVM, Perceptron
-from libact.query_strategies import UncertaintySampling, QUIRE
+from libact.query_strategies import UncertaintySampling
 from libact.labelers import IdealLabeler
 
 
@@ -26,10 +26,19 @@ def run_qs(trn_ds, lbr, model, qs, quota):
 
 
 class UncertaintySamplingTestCase(unittest.TestCase):
-
     def setUp(self):
-        self.X = [[-2, -1], [-1, -1], [-1, -2], [1, 1], [1, 2], [2, 1], [0, 1],
-                  [0, -2], [1.5, 1.5], [-2, -2]]
+        self.X = [
+            [-2, -1],
+            [-1, -1],
+            [-1, -2],
+            [1, 1],
+            [1, 2],
+            [2, 1],
+            [0, 1],
+            [0, -2],
+            [1.5, 1.5],
+            [-2, -2],
+        ]
         self.y = [-1, -1, -1, 1, 1, 1, -1, -1, 1, 1]
         self.quota = 4
         self.fully_labeled_trn_ds = Dataset(self.X, self.y)
@@ -38,27 +47,33 @@ class UncertaintySamplingTestCase(unittest.TestCase):
     def test_uncertainty_lc(self):
         trn_ds = init_toyexample(self.X, self.y)
         qs = UncertaintySampling(
-            trn_ds, method='lc',
-            model=LogisticRegression(solver='liblinear', multi_class="ovr"))
-        model = LogisticRegression(solver='liblinear', multi_class="ovr")
+            trn_ds,
+            method="lc",
+            model=LogisticRegression(solver="liblinear", multi_class="ovr"),
+        )
+        model = LogisticRegression(solver="liblinear", multi_class="ovr")
         qseq = run_qs(trn_ds, self.lbr, model, qs, self.quota)
         assert_array_equal(qseq, np.array([6, 7, 8, 9]))
 
     def test_uncertainty_sm(self):
         trn_ds = init_toyexample(self.X, self.y)
         qs = UncertaintySampling(
-            trn_ds, method='sm',
-            model=LogisticRegression(solver='liblinear', multi_class="ovr"))
-        model = LogisticRegression(solver='liblinear', multi_class="ovr")
+            trn_ds,
+            method="sm",
+            model=LogisticRegression(solver="liblinear", multi_class="ovr"),
+        )
+        model = LogisticRegression(solver="liblinear", multi_class="ovr")
         qseq = run_qs(trn_ds, self.lbr, model, qs, self.quota)
         assert_array_equal(qseq, np.array([6, 7, 8, 9]))
 
     def test_uncertainty_entropy(self):
         trn_ds = init_toyexample(self.X, self.y)
         qs = UncertaintySampling(
-            trn_ds, method='entropy',
-            model=LogisticRegression(solver='liblinear', multi_class="ovr"))
-        model = LogisticRegression(solver='liblinear', multi_class="ovr")
+            trn_ds,
+            method="entropy",
+            model=LogisticRegression(solver="liblinear", multi_class="ovr"),
+        )
+        model = LogisticRegression(solver="liblinear", multi_class="ovr")
         qseq = run_qs(trn_ds, self.lbr, model, qs, self.quota)
         assert_array_equal(qseq, np.array([6, 7, 8, 9]))
 
@@ -66,17 +81,18 @@ class UncertaintySamplingTestCase(unittest.TestCase):
         trn_ds = init_toyexample(self.X, self.y)
 
         with self.assertRaises(TypeError):
-            qs = UncertaintySampling(trn_ds, method='entropy', model=SVM())
+            qs = UncertaintySampling(trn_ds, method="entropy", model=SVM())
+
+        with self.assertRaises(TypeError):
+            qs = UncertaintySampling(trn_ds, method="entropy", model=Perceptron())
 
         with self.assertRaises(TypeError):
             qs = UncertaintySampling(
-                    trn_ds, method='entropy', model=Perceptron())
-
-        with self.assertRaises(TypeError):
-            qs = UncertaintySampling(
-                    trn_ds, method='not_exist',
-                    model=LogisticRegression(solver='liblinear', multi_class="ovr"))
+                trn_ds,
+                method="not_exist",
+                model=LogisticRegression(solver="liblinear", multi_class="ovr"),
+            )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -15,7 +15,6 @@ from ...tests.utils import run_qs
 
 
 class HierarchicalSamplingTestCase(unittest.TestCase):
-
     def setUp(self):
         iris = datasets.load_iris()
         X, y = shuffle(iris.data, iris.target, random_state=1126)
@@ -26,34 +25,101 @@ class HierarchicalSamplingTestCase(unittest.TestCase):
     def test_hs_random_selecting(self):
         ds = Dataset(self.X, self.y[:10] + [None] * (len(self.y) - 10))
         qs = HS(ds, self.classes, active_selecting=False, random_state=1126)
-        qseq = run_qs(ds, qs, self.y, len(self.y)-10)
+        qseq = run_qs(ds, qs, self.y, len(self.y) - 10)
         assert_array_equal(
             np.concatenate([qseq[:10], qseq[-10:]]),
-            np.array([39, 126, 66, 135, 37, 33, 118, 132, 142, 144,
-                      71, 28, 63, 41, 140, 34, 20, 110, 136, 36])
-            )
+            np.array(
+                [
+                    39,
+                    126,
+                    66,
+                    135,
+                    37,
+                    33,
+                    118,
+                    132,
+                    142,
+                    144,
+                    71,
+                    28,
+                    63,
+                    41,
+                    140,
+                    34,
+                    20,
+                    110,
+                    136,
+                    36,
+                ]
+            ),
+        )
 
     def test_hs_active_selecting(self):
         ds = Dataset(self.X, self.y[:10] + [None] * (len(self.y) - 10))
         qs = HS(ds, self.classes, active_selecting=True, random_state=1126)
-        qseq = run_qs(ds, qs, self.y, len(self.y)-10)
+        qseq = run_qs(ds, qs, self.y, len(self.y) - 10)
         assert_array_equal(
             np.concatenate([qseq[:10], qseq[-10:]]),
-            np.array([39, 126, 66, 135, 37, 33, 118, 132, 142, 144,
-                      89, 117, 48, 67, 75, 14, 79, 62, 105, 19])
-            )
+            np.array(
+                [
+                    39,
+                    126,
+                    66,
+                    135,
+                    37,
+                    33,
+                    118,
+                    132,
+                    142,
+                    144,
+                    89,
+                    117,
+                    48,
+                    67,
+                    75,
+                    14,
+                    79,
+                    62,
+                    105,
+                    19,
+                ]
+            ),
+        )
 
     def test_hs_subsampling(self):
         ds = Dataset(self.X, self.y[:10] + [None] * (len(self.y) - 10))
-        sub_qs = UncertaintySampling(ds,
-                    model=SVM(gamma='auto', decision_function_shape='ovr'))
+        sub_qs = UncertaintySampling(
+            ds, model=SVM(gamma="auto", decision_function_shape="ovr")
+        )
         qs = HS(ds, self.classes, subsample_qs=sub_qs, random_state=1126)
-        qseq = run_qs(ds, qs, self.y, len(self.y)-10)
+        qseq = run_qs(ds, qs, self.y, len(self.y) - 10)
         assert_array_equal(
             np.concatenate([qseq[:10], qseq[-10:]]),
-            np.array([120, 50, 33, 28, 78, 133, 52, 124, 102, 109,
-                      81, 108, 10, 89, 126, 114, 92, 48, 25, 13])
-            )
+            np.array(
+                [
+                    120,
+                    50,
+                    33,
+                    28,
+                    78,
+                    133,
+                    52,
+                    124,
+                    102,
+                    109,
+                    81,
+                    108,
+                    10,
+                    89,
+                    126,
+                    114,
+                    92,
+                    48,
+                    25,
+                    13,
+                ]
+            ),
+        )
 
     def test_hs_report_all_label(self):
         ds = Dataset(self.X, self.y)

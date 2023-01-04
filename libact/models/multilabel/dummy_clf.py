@@ -4,7 +4,8 @@ this classifier handles this condition.
 """
 import numpy as np
 
-class DummyClf():
+
+class DummyClf:
     """This classifier handles training sets with only 0s or 1s to unify the
     interface.
 
@@ -14,7 +15,7 @@ class DummyClf():
         self.classes_ = [0, 1]
 
     def fit(self, X, y):
-        self.cls = int(y[0]) # 1 or 0
+        self.cls = int(y[0])  # 1 or 0
 
     def train(self, dataset):
         _, y = dataset.get_labeled_entries()
@@ -28,5 +29,5 @@ class DummyClf():
 
     def predict_proba(self, X):
         ret = np.zeros((len(X), 2))
-        ret[:, self.cls] = 1.
+        ret[:, self.cls] = 1.0
         return ret

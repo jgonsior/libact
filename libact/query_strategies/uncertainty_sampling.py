@@ -7,9 +7,8 @@ smallest margin method (margin sampling).
 """
 import numpy as np
 
-from libact.base.interfaces import QueryStrategy, ContinuousModel, \
-    ProbabilisticModel
-from libact.utils import inherit_docstring_from, zip
+from libact.base.interfaces import QueryStrategy, ContinuousModel, ProbabilisticModel
+from libact.utils import zip
 
 
 class UncertaintySampling(QueryStrategy):
@@ -69,28 +68,26 @@ class UncertaintySampling(QueryStrategy):
     def __init__(self, *args, **kwargs):
         super(UncertaintySampling, self).__init__(*args, **kwargs)
 
-        self.model = kwargs.pop('model', None)
+        self.model = kwargs.pop("model", None)
         if self.model is None:
             raise TypeError(
                 "__init__() missing required keyword-only argument: 'model'"
             )
-        if not isinstance(self.model, ContinuousModel) and \
-                not isinstance(self.model, ProbabilisticModel):
-            raise TypeError(
-                "model has to be a ContinuousModel or ProbabilisticModel"
-            )
+        if not isinstance(self.model, ContinuousModel) and not isinstance(
+            self.model, ProbabilisticModel
+        ):
+            raise TypeError("model has to be a ContinuousModel or ProbabilisticModel")
 
         self.model.train(self.dataset)
 
-        self.method = kwargs.pop('method', 'lc')
-        if self.method not in ['lc', 'sm', 'entropy']:
+        self.method = kwargs.pop("method", "lc")
+        if self.method not in ["lc", "sm", "entropy"]:
             raise TypeError(
                 "supported methods are ['lc', 'sm', 'entropy'], the given one "
                 "is: " + self.method
             )
 
-        if self.method=='entropy' and \
-                not isinstance(self.model, ProbabilisticModel):
+        if self.method == "entropy" and not isinstance(self.model, ProbabilisticModel):
             raise TypeError(
                 "method 'entropy' requires model to be a ProbabilisticModel"
             )
@@ -105,19 +102,18 @@ class UncertaintySampling(QueryStrategy):
         elif isinstance(self.model, ContinuousModel):
             dvalue = self.model.predict_real(X_pool)
 
-        if self.method == 'lc':  # least confident
+        if self.method == "lc":  # least confident
             score = -np.max(dvalue, axis=1)
 
-        elif self.method == 'sm':  # smallest margin
+        elif self.method == "sm":  # smallest margin
             if np.shape(dvalue)[1] > 2:
                 # Find 2 largest decision values
                 dvalue = -(np.partition(-dvalue, 2, axis=1)[:, :2])
             score = -np.abs(dvalue[:, 0] - dvalue[:, 1])
 
-        elif self.method == 'entropy':
+        elif self.method == "entropy":
             score = np.sum(-dvalue * np.log(dvalue), axis=1)
         return zip(unlabeled_entry_ids, score)
-
 
     def make_query(self, return_score=False):
         """Return the index of the sample to be queried and labeled and
@@ -141,7 +137,6 @@ class UncertaintySampling(QueryStrategy):
         ask_id = np.argmax(scores)
 
         if return_score:
-            return unlabeled_entry_ids[ask_id], \
-                   list(zip(unlabeled_entry_ids, scores))
+            return unlabeled_entry_ids[ask_id], list(zip(unlabeled_entry_ids, scores))
         else:
             return unlabeled_entry_ids[ask_id]

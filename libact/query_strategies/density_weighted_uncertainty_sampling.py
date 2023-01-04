@@ -10,7 +10,7 @@ from scipy.optimize import minimize
 from scipy.stats import multivariate_normal
 
 from libact.base.interfaces import QueryStrategy
-from libact.utils import inherit_docstring_from, seed_random_state, zip
+from libact.utils import inherit_docstring_from, seed_random_state
 
 
 class DWUS(QueryStrategy):
@@ -78,19 +78,18 @@ class DWUS(QueryStrategy):
 
     def __init__(self, *args, **kwargs):
         super(DWUS, self).__init__(*args, **kwargs)
-        self.n_clusts = kwargs.pop('n_clusters', 5)
-        self.sigma = kwargs.pop('sigma', 0.1)
-        self.max_iter = kwargs.pop('max_iter', 100)
-        self.tol = kwargs.pop('tol', 1e-4)
-        self.C = kwargs.pop('C', 1.)
-        random_state = kwargs.pop('random_state', None)
+        self.n_clusts = kwargs.pop("n_clusters", 5)
+        self.sigma = kwargs.pop("sigma", 0.1)
+        self.max_iter = kwargs.pop("max_iter", 100)
+        self.tol = kwargs.pop("tol", 1e-4)
+        self.C = kwargs.pop("C", 1.0)
+        random_state = kwargs.pop("random_state", None)
         self.random_state_ = seed_random_state(random_state)
-        kmeans_param = kwargs.pop('kmeans_param', {})
-        if 'random_state' not in kmeans_param:
-            kmeans_param['random_state'] = self.random_state_
+        kmeans_param = kwargs.pop("kmeans_param", {})
+        if "random_state" not in kmeans_param:
+            kmeans_param["random_state"] = self.random_state_
 
-        self.kmeans_ = KMeans(n_clusters=self.n_clusts,
-                              **kmeans_param)
+        self.kmeans_ = KMeans(n_clusters=self.n_clusts, **kmeans_param)
         all_x = np.array([xy[0] for xy in self.dataset.data])
 
         # Cluster the data.
@@ -102,8 +101,11 @@ class DWUS(QueryStrategy):
 
         dis = np.zeros((len(all_x), self.n_clusts))
         for i in range(self.n_clusts):
-            dis[:, i] = np.exp(-np.einsum('ij,ji->i', (all_x - centers[i]),
-                (all_x - centers[i]).T) / 2 / self.sigma)
+            dis[:, i] = np.exp(
+                -np.einsum("ij,ji->i", (all_x - centers[i]), (all_x - centers[i]).T)
+                / 2
+                / self.sigma
+            )
 
         # EM percedure to estimate the prior
         for _ in range(self.max_iter):
@@ -113,33 +115,34 @@ class DWUS(QueryStrategy):
             P_k_x = temp / np.tile(np.sum(temp, axis=1), (self.n_clusts, 1)).T
 
             # M-step
-            P_k = 1./len(all_x) * np.sum(P_k_x, axis=0)
+            P_k = 1.0 / len(all_x) * np.sum(P_k_x, axis=0)
 
         self.P_k_x = P_k_x
 
         p_x_k = np.zeros((len(all_x), self.n_clusts))
         for i in range(self.n_clusts):
             p_x_k[:, i] = multivariate_normal.pdf(
-                all_x, mean=centers[i], cov=np.ones(d)*np.sqrt(self.sigma))
+                all_x, mean=centers[i], cov=np.ones(d) * np.sqrt(self.sigma)
+            )
 
         self.p_x = np.dot(p_x_k, P_k).reshape(-1)
 
     @inherit_docstring_from(QueryStrategy)
     def make_query(self):
         unlabeled_entry_ids, _ = self.dataset.get_unlabeled_entries()
-        labeled_entry_ids = np.array([eid
-                                      for eid, x in enumerate(self.dataset.data)
-                                      if x[1] != None])
-        labels = np.array([x[1]
-                           for eid, x in enumerate(self.dataset.data)
-                           if x[1] != None]).reshape(-1, 1)
+        labeled_entry_ids = np.array(
+            [eid for eid, x in enumerate(self.dataset.data) if x[1] != None]
+        )
+        labels = np.array(
+            [x[1] for eid, x in enumerate(self.dataset.data) if x[1] != None]
+        ).reshape(-1, 1)
         centers = self.kmeans_.cluster_centers_
         P_k_x = self.P_k_x
         p_x = self.p_x[list(unlabeled_entry_ids)]
 
-        clf = DensityWeightedLogisticRegression(P_k_x[labeled_entry_ids, :],
-                                                centers,
-                                                self.C)
+        clf = DensityWeightedLogisticRegression(
+            P_k_x[labeled_entry_ids, :], centers, self.C
+        )
         clf.train(labeled_entry_ids, labels)
         P_y_k = clf.predict()
 
@@ -149,7 +152,7 @@ class DWUS(QueryStrategy):
 
         # binary case
         expected_error = P_y_x
-        expected_error[P_y_x >= 0.5] = 1. - P_y_x[P_y_x >= 0.5]
+        expected_error[P_y_x >= 0.5] = 1.0 - P_y_x[P_y_x >= 0.5]
 
         ask_id = np.argmax(expected_error * p_x)
 
@@ -157,19 +160,19 @@ class DWUS(QueryStrategy):
 
     def make_n_queries(self, batch_size):
         unlabeled_entry_ids, _ = self.dataset.get_unlabeled_entries()
-        labeled_entry_ids = np.array([eid
-                                      for eid, x in enumerate(self.dataset.data)
-                                      if x[1] != None])
-        labels = np.array([x[1]
-                           for eid, x in enumerate(self.dataset.data)
-                           if x[1] != None]).reshape(-1, 1)
+        labeled_entry_ids = np.array(
+            [eid for eid, x in enumerate(self.dataset.data) if x[1] != None]
+        )
+        labels = np.array(
+            [x[1] for eid, x in enumerate(self.dataset.data) if x[1] != None]
+        ).reshape(-1, 1)
         centers = self.kmeans_.cluster_centers_
         P_k_x = self.P_k_x
         p_x = self.p_x[list(unlabeled_entry_ids)]
 
-        clf = DensityWeightedLogisticRegression(P_k_x[labeled_entry_ids, :],
-                                                centers,
-                                                self.C)
+        clf = DensityWeightedLogisticRegression(
+            P_k_x[labeled_entry_ids, :], centers, self.C
+        )
         clf.train(labeled_entry_ids, labels)
         P_y_k = clf.predict()
 
@@ -179,13 +182,14 @@ class DWUS(QueryStrategy):
 
         # binary case
         expected_error = P_y_x
-        expected_error[P_y_x >= 0.5] = 1. - P_y_x[P_y_x >= 0.5]
+        expected_error[P_y_x >= 0.5] = 1.0 - P_y_x[P_y_x >= 0.5]
 
         ind = list(enumerate(expected_error * p_x))
         top_n = sorted(ind, key=operator.itemgetter(1))[-batch_size:]
         ask_ids = list(reversed([i for i, v in top_n]))
 
         return [unlabeled_entry_ids[i] for i in ask_ids]
+
 
 class DensityWeightedLogisticRegression(object):
     """Density Weighted Logistic Regression
@@ -237,25 +241,31 @@ class DensityWeightedLogisticRegression(object):
 
     def _likelihood(self, w, X, y):
         w = w.reshape(-1, 1)
-        sigmoid = lambda t: 1. / (1. + np.exp(-t))
+        sigmoid = lambda t: 1.0 / (1.0 + np.exp(-t))
         # w --> shape = (d+1, 1)
-        L = lambda w: (self.C/2. * np.dot(w[:-1].T, w[:-1]) - \
-                np.sum(np.log(
-                    np.sum(self.density *
-                        sigmoid(np.dot(y,
-                                       (np.dot(self.centers, w[:-1]) + w[-1]).T)
-                        ), axis=1)
-                ), axis=0))[0][0]
+        L = lambda w: (
+            self.C / 2.0 * np.dot(w[:-1].T, w[:-1])
+            - np.sum(
+                np.log(
+                    np.sum(
+                        self.density
+                        * sigmoid(np.dot(y, (np.dot(self.centers, w[:-1]) + w[-1]).T)),
+                        axis=1,
+                    )
+                ),
+                axis=0,
+            )
+        )[0][0]
 
         return L(w)
 
     def train(self, X, y):
         d = np.shape(self.centers)[1]
-        w = np.zeros((d+1, 1))
+        w = np.zeros((d + 1, 1))
         # TODO Use more sophistic optimization methods
-        result = minimize(lambda _w: self._likelihood(_w, X, y),
-                          w.reshape(-1),
-                          method='CG')
+        result = minimize(
+            lambda _w: self._likelihood(_w, X, y), w.reshape(-1), method="CG"
+        )
         w = result.x.reshape(-1, 1)
 
         self.w_ = w
@@ -269,7 +279,7 @@ class DensityWeightedLogisticRegression(object):
 
         """
         if self.w_ is not None:
-            sigmoid = lambda t: 1. / (1. + np.exp(-t))
+            sigmoid = lambda t: 1.0 / (1.0 + np.exp(-t))
             return sigmoid(np.dot(self.centers, self.w_[:-1]) + self.w_[-1])
         else:
             # TODO the model is not trained

@@ -10,9 +10,9 @@ from .maximum_margin_reduction import MaximumLossReductionMaximalConfidence as M
 from .multilabel_with_auxiliary_learner import MultilabelWithAuxiliaryLearner
 
 __all__ = [
-    'AdaptiveActiveLearning',
-    'BinaryMinimization',
-    'CostSensitiveReferencePairEncoding',
-    'MMC',
-    'MultilabelWithAuxiliaryLearner'
+    "AdaptiveActiveLearning",
+    "BinaryMinimization",
+    "CostSensitiveReferencePairEncoding",
+    "MMC",
+    "MultilabelWithAuxiliaryLearner",
 ]

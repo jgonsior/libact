@@ -10,9 +10,20 @@ from .utils import run_qs
 
 class QUIRETestCase(unittest.TestCase):
     """QUIRE test case using artifitial dataset"""
+
     def setUp(self):
-        self.X = [[-2, -1], [-1, -1], [-1, -2], [1, 1], [1, 2], [2, 1], [0, 1],
-                  [0, -2], [1.5, 1.5], [-2, -2]]
+        self.X = [
+            [-2, -1],
+            [-1, -1],
+            [-1, -2],
+            [1, 1],
+            [1, 2],
+            [2, 1],
+            [0, 1],
+            [0, -2],
+            [1.5, 1.5],
+            [-2, -2],
+        ]
         self.y = [-1, -1, -1, 1, 1, 1, -1, -1, 1, 1]
         self.quota = 4
 
@@ -23,6 +34,5 @@ class QUIRETestCase(unittest.TestCase):
         assert_array_equal(qseq, np.array([6, 7, 9, 8]))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
-

@@ -8,8 +8,7 @@ This module contains a class that implements an active learning algorithm
 import bisect
 
 import numpy as np
-from sklearn.metrics.pairwise import linear_kernel, polynomial_kernel,\
-    rbf_kernel
+from sklearn.metrics.pairwise import linear_kernel, polynomial_kernel, rbf_kernel
 
 from libact.base.interfaces import QueryStrategy
 
@@ -77,30 +76,31 @@ class QUIRE(QueryStrategy):
         # self.Lindex = [
         #     idx for idx in range(len(self.dataset)) if idx not in self.Uindex
         # ]
-        self.lmbda = kwargs.pop('lambda', 1.)
+        self.lmbda = kwargs.pop("lambda", 1.0)
         X, self.y = self.dataset.get_entries()
         self.y = list(self.y)
-        self.kernel = kwargs.pop('kernel', 'rbf')
-        if self.kernel == 'rbf':
-            self.K = rbf_kernel(X=X, Y=X, gamma=kwargs.pop('gamma', 1.))
-        elif self.kernel == 'poly':
-            self.K = polynomial_kernel(X=X,
-                                       Y=X,
-                                       coef0=kwargs.pop('coef0', 1),
-                                       degree=kwargs.pop('degree', 3),
-                                       gamma=kwargs.pop('gamma', 1.))
-        elif self.kernel == 'linear':
+        self.kernel = kwargs.pop("kernel", "rbf")
+        if self.kernel == "rbf":
+            self.K = rbf_kernel(X=X, Y=X, gamma=kwargs.pop("gamma", 1.0))
+        elif self.kernel == "poly":
+            self.K = polynomial_kernel(
+                X=X,
+                Y=X,
+                coef0=kwargs.pop("coef0", 1),
+                degree=kwargs.pop("degree", 3),
+                gamma=kwargs.pop("gamma", 1.0),
+            )
+        elif self.kernel == "linear":
             self.K = linear_kernel(X=X, Y=X)
-        elif hasattr(self.kernel, '__call__'):
+        elif hasattr(self.kernel, "__call__"):
             self.K = self.kernel(X=np.array(X), Y=np.array(X))
         else:
             raise NotImplementedError
 
         if not isinstance(self.K, np.ndarray):
-            raise TypeError('K should be an ndarray')
+            raise TypeError("K should be an ndarray")
         if self.K.shape != (len(X), len(X)):
-            raise ValueError(
-                'kernel should have size (%d, %d)' % (len(X), len(X)))
+            raise ValueError("kernel should have size (%d, %d)" % (len(X), len(X)))
         self.L = np.linalg.inv(self.K + self.lmbda * np.eye(len(X)))
 
     def update(self, entry_id, label):
@@ -117,8 +117,10 @@ class QUIRE(QueryStrategy):
         y_labeled = np.array([label for label in self.y if label is not None])
         det_Laa = np.linalg.det(L[np.ix_(Uindex, Uindex)])
         # efficient computation of inv(Laa)
-        M3 = np.dot(self.K[np.ix_(Uindex, Lindex)],
-                    np.linalg.inv(self.lmbda * np.eye(len(Lindex))))
+        M3 = np.dot(
+            self.K[np.ix_(Uindex, Lindex)],
+            np.linalg.inv(self.lmbda * np.eye(len(Lindex))),
+        )
         M2 = np.dot(M3, self.K[np.ix_(Lindex, Uindex)])
         M1 = self.lmbda * np.eye(len(Uindex)) + self.K[np.ix_(Uindex, Uindex)]
         inv_Laa = M1 - M2
@@ -132,21 +134,22 @@ class QUIRE(QueryStrategy):
             Uindex_r.remove(each_index)
             iList_r = iList[:]
             iList_r.remove(i)
-            inv_Luu = inv_Laa[np.ix_(iList_r, iList_r)] - 1 / inv_Laa[i, i] * \
-                np.dot(inv_Laa[iList_r, i], inv_Laa[iList_r, i].T)
+            inv_Luu = inv_Laa[np.ix_(iList_r, iList_r)] - 1 / inv_Laa[i, i] * np.dot(
+                inv_Laa[iList_r, i], inv_Laa[iList_r, i].T
+            )
             tmp = np.dot(
-                L[each_index][Lindex] -
-                np.dot(
-                    np.dot(
-                        L[each_index][Uindex_r],
-                        inv_Luu
-                    ),
-                    L[np.ix_(Uindex_r, Lindex)]
+                L[each_index][Lindex]
+                - np.dot(
+                    np.dot(L[each_index][Uindex_r], inv_Luu),
+                    L[np.ix_(Uindex_r, Lindex)],
                 ),
                 y_labeled,
             )
-            eva = L[each_index][each_index] - \
-                det_Laa / L[each_index][each_index] + 2 * np.abs(tmp)
+            eva = (
+                L[each_index][each_index]
+                - det_Laa / L[each_index][each_index]
+                + 2 * np.abs(tmp)
+            )
 
             if eva < min_eva:
                 query_index = each_index
@@ -162,15 +165,18 @@ class QUIRE(QueryStrategy):
         y_labeled = np.array([label for label in self.y if label is not None])
         det_Laa = np.linalg.det(L[np.ix_(Uindex, Uindex)])
         # efficient computation of inv(Laa)
-        M3 = np.dot(self.K[np.ix_(Uindex, Lindex)],
-                    np.linalg.inv(self.lmbda * np.eye(len(Lindex))))
+        M3 = np.dot(
+            self.K[np.ix_(Uindex, Lindex)],
+            np.linalg.inv(self.lmbda * np.eye(len(Lindex))),
+        )
         M2 = np.dot(M3, self.K[np.ix_(Lindex, Uindex)])
         M1 = self.lmbda * np.eye(len(Uindex)) + self.K[np.ix_(Uindex, Uindex)]
         inv_Laa = M1 - M2
         iList = list(range(len(Uindex)))
         if len(iList) == 1:
             return Uindex[0]
-        ids = {}
+
+        ids_with_eva = {}
         for i, each_index in enumerate(Uindex):
             # go through all unlabeled instances and compute their evaluation
             # values one by one
@@ -178,29 +184,30 @@ class QUIRE(QueryStrategy):
             Uindex_r.remove(each_index)
             iList_r = iList[:]
             iList_r.remove(i)
-            inv_Luu = inv_Laa[np.ix_(iList_r, iList_r)] - 1 / inv_Laa[i, i] * \
-                np.dot(inv_Laa[iList_r, i], inv_Laa[iList_r, i].T)
+            inv_Luu = inv_Laa[np.ix_(iList_r, iList_r)] - 1 / inv_Laa[i, i] * np.dot(
+                inv_Laa[iList_r, i], inv_Laa[iList_r, i].T
+            )
             tmp = np.dot(
-                L[each_index][Lindex] -
-                np.dot(
-                    np.dot(
-                        L[each_index][Uindex_r],
-                        inv_Luu
-                    ),
-                    L[np.ix_(Uindex_r, Lindex)]
+                L[each_index][Lindex]
+                - np.dot(
+                    np.dot(L[each_index][Uindex_r], inv_Luu),
+                    L[np.ix_(Uindex_r, Lindex)],
                 ),
                 y_labeled,
             )
-            eva = L[each_index][each_index] - \
-                det_Laa / L[each_index][each_index] + 2 * np.abs(tmp)
+            eva = (
+                L[each_index][each_index]
+                - det_Laa / L[each_index][each_index]
+                + 2 * np.abs(tmp)
+            )
 
-            if len(ids) < batch_size:
-                ids[each_index] = eva
-                min_eva = max(ids.values())
-            elif eva < min_eva:
-                ids[each_index] = eva
-                min_eva = max(ids.values())
-                ids.pop(ids.get(min_eva))
-                min_eva = max(ids.values())
+            ids_with_eva[each_index] = eva
 
-        return ids.keys()
+            if eva < min_eva:
+                query_index = each_index
+                min_eva = eva
+        ids = np.array(list(ids_with_eva.keys()))
+        eva = np.array(list(ids_with_eva.values()))
+        top_keys = np.argpartition(eva, batch_size)[:batch_size]
+
+        return ids[top_keys]

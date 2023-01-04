@@ -6,8 +6,8 @@ import numpy as np
 from joblib import Parallel, delayed
 
 from libact.base.dataset import Dataset
-from libact.base.interfaces import QueryStrategy, ContinuousModel
-from libact.utils import inherit_docstring_from, seed_random_state, zip
+from libact.base.interfaces import QueryStrategy
+from libact.utils import inherit_docstring_from, seed_random_state
 from libact.models.multilabel import BinaryRelevance
 
 
@@ -16,15 +16,16 @@ def _calc_approx_err(br, dataset, X_pool):
     br_real = br.predict_real(X_pool)
 
     pos = np.copy(br_real)
-    pos[br_real<0] = 1
-    pos = np.max((1.-pos), axis=1)
+    pos[br_real < 0] = 1
+    pos = np.max((1.0 - pos), axis=1)
 
     neg = np.copy(br_real)
-    neg[br_real>0] = -1
-    neg = np.max((1.+neg), axis=1)
+    neg[br_real > 0] = -1
+    neg = np.max((1.0 + neg), axis=1)
 
     err = neg + pos
     return np.sum(err)
+
 
 class AdaptiveActiveLearning(QueryStrategy):
     r"""Adaptive Active Learning
@@ -75,8 +76,7 @@ class AdaptiveActiveLearning(QueryStrategy):
            Classification." IJCAI. 2013.
     """
 
-    def __init__(self, dataset, base_clf, betas=None, n_jobs=1,
-            random_state=None):
+    def __init__(self, dataset, base_clf, betas=None, n_jobs=1, random_state=None):
         super(AdaptiveActiveLearning, self).__init__(dataset)
 
         self.n_labels = len(self.dataset.data[0][1])
@@ -86,7 +86,7 @@ class AdaptiveActiveLearning(QueryStrategy):
         # TODO check beta value
         self.betas = betas
         if self.betas is None:
-            self.betas = [i/10. for i in range(0, 11)]
+            self.betas = [i / 10.0 for i in range(0, 11)]
 
         self.n_jobs = n_jobs
         self.random_state_ = seed_random_state(random_state)
@@ -106,33 +106,35 @@ class AdaptiveActiveLearning(QueryStrategy):
 
         # Separation Margin
         pos = np.copy(real)
-        pos[real<=0] = np.inf
+        pos[real <= 0] = np.inf
         neg = np.copy(real)
-        neg[real>=0] = -np.inf
+        neg[real >= 0] = -np.inf
         separation_margin = pos.min(axis=1) - neg.max(axis=1)
-        uncertainty = 1. / separation_margin
+        uncertainty = 1.0 / separation_margin
 
         # Label Cardinality Inconsistency
         average_pos_lbl = Y.mean(axis=0).sum()
-        label_cardinality = np.sqrt((pred.sum(axis=1) - average_pos_lbl)**2)
+        label_cardinality = np.sqrt((pred.sum(axis=1) - average_pos_lbl) ** 2)
 
         candidate_idx_set = set()
         for b in self.betas:
             # score shape = (len(X_pool), )
-            score = uncertainty**b * label_cardinality**(1.-b)
+            score = uncertainty**b * label_cardinality ** (1.0 - b)
             for idx in np.where(score == np.max(score))[0]:
                 candidate_idx_set.add(idx)
 
         candidates = list(candidate_idx_set)
-        approx_err = Parallel(n_jobs=self.n_jobs, backend='threading')(
+        approx_err = Parallel(n_jobs=self.n_jobs, backend="threading")(
             delayed(_calc_approx_err)(
                 BinaryRelevance(self.base_clf),
                 Dataset(np.vstack((X, X_pool[idx])), np.vstack((Y, pred[idx]))),
-                X_pool)
-            for idx in candidates)
+                X_pool,
+            )
+            for idx in candidates
+        )
 
-        #approx_err = []
-        #for idx in candidates:
+        # approx_err = []
+        # for idx in candidates:
         #    ds = Dataset(np.vstack((X, X_pool[idx])), np.vstack((Y, pred[idx])))
         #    br = BinaryRelevance(self.base_clf)
         #    br.train(ds)

@@ -66,16 +66,25 @@ class DensityWeightedMeta(QueryStrategy):
            Wisconsin, Madison 52.55-66 (2010): 11.
     """
 
-    def __init__(self, dataset, base_query_strategy, similarity_metric=None,
-                 clustering_method=None, beta=1.0, random_state=None):
+    def __init__(
+        self,
+        dataset,
+        base_query_strategy,
+        similarity_metric=None,
+        clustering_method=None,
+        beta=1.0,
+        random_state=None,
+    ):
         super(DensityWeightedMeta, self).__init__(dataset=dataset)
         if not isinstance(base_query_strategy, QueryStrategy):
             raise TypeError(
                 "'base_query_strategy' has to be an instance of 'QueryStrategy'"
             )
         if base_query_strategy.dataset != self.dataset:
-            raise ValueError("base_query_strategy should share the same"
-                             "dataset instance with DensityWeightedMeta")
+            raise ValueError(
+                "base_query_strategy should share the same"
+                "dataset instance with DensityWeightedMeta"
+            )
 
         self.base_query_strategy = base_query_strategy
         self.beta = beta
@@ -85,13 +94,13 @@ class DensityWeightedMeta(QueryStrategy):
             self.clustering_method = clustering_method
         else:
             self.clustering_method = KMeans(
-                n_clusters=5, random_state=self.random_state_)
-        
+                n_clusters=5, random_state=self.random_state_
+            )
+
         if similarity_metric is not None:
             self.similarity_metric = similarity_metric
         else:
             self.similarity_metric = cosine_similarity
-
 
     @inherit_docstring_from(QueryStrategy)
     def update(self, entry_id, label):
@@ -104,7 +113,7 @@ class DensityWeightedMeta(QueryStrategy):
         scores = self.base_query_strategy._get_scores()
         _, X_pool = dataset.get_unlabeled_entries()
         unlabeled_entry_ids, base_scores = zip(*scores)
-        
+
         self.clustering_method.fit(X)
         pool_cluster = self.clustering_method.predict(X_pool)
         cluster_center = self.clustering_method.cluster_centers_
@@ -113,7 +122,7 @@ class DensityWeightedMeta(QueryStrategy):
             similarity.append(
                 self.similarity_metric(
                     X_pool[i].reshape(1, -1),
-                    cluster_center[pool_cluster[i]].reshape(1, -1)
+                    cluster_center[pool_cluster[i]].reshape(1, -1),
                 )[0][0]
             )
         similarity = np.asarray(similarity)

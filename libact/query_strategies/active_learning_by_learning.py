@@ -11,7 +11,7 @@ import copy
 import numpy as np
 
 from libact.base.interfaces import QueryStrategy
-from libact.utils import inherit_docstring_from, seed_random_state, zip
+from libact.utils import inherit_docstring_from, seed_random_state
 
 
 class ActiveLearningByLearning(QueryStrategy):
@@ -109,7 +109,7 @@ class ActiveLearningByLearning(QueryStrategy):
 
     def __init__(self, *args, **kwargs):
         super(ActiveLearningByLearning, self).__init__(*args, **kwargs)
-        self.query_strategies_ = kwargs.pop('query_strategies', None)
+        self.query_strategies_ = kwargs.pop("query_strategies", None)
         if self.query_strategies_ is None:
             raise TypeError(
                 "__init__() missing required keyword-only argument: "
@@ -121,33 +121,32 @@ class ActiveLearningByLearning(QueryStrategy):
         # check if query_strategies share the same dataset with albl
         for qs in self.query_strategies_:
             if qs.dataset != self.dataset:
-                raise ValueError("query_strategies should share the same"
-                                 "dataset instance with albl")
+                raise ValueError(
+                    "query_strategies should share the same"
+                    "dataset instance with albl"
+                )
 
         # parameters for Exp4.p
-        self.delta = kwargs.pop('delta', 0.1)
+        self.delta = kwargs.pop("delta", 0.1)
 
         # query budget
-        self.T = kwargs.pop('T', None)
+        self.T = kwargs.pop("T", None)
         if self.T is None:
-            raise TypeError(
-                "__init__() missing required keyword-only argument: 'T'"
-            )
+            raise TypeError("__init__() missing required keyword-only argument: 'T'")
 
         self.unlabeled_entry_ids, _ = self.dataset.get_unlabeled_entries()
         self.unlabeled_invert_id_idx = {}
         for i, idx in enumerate(self.dataset.get_unlabeled_entries()[0]):
             self.unlabeled_invert_id_idx[idx] = i
 
-        self.uniform_sampler = kwargs.pop('uniform_sampler', True)
+        self.uniform_sampler = kwargs.pop("uniform_sampler", True)
         if not isinstance(self.uniform_sampler, bool):
             raise ValueError("'uniform_sampler' should be {True, False}")
 
-        self.pmin = kwargs.pop('pmin', None)
-        n_algorithms = (len(self.query_strategies_) + self.uniform_sampler)
-        if self.pmin and (self.pmin > (1. / n_algorithms) or self.pmin < 0):
-            raise ValueError("'pmin' should be 0 < pmin < "
-                             "1/len(n_active_algorithm)")
+        self.pmin = kwargs.pop("pmin", None)
+        n_algorithms = len(self.query_strategies_) + self.uniform_sampler
+        if self.pmin and (self.pmin > (1.0 / n_algorithms) or self.pmin < 0):
+            raise ValueError("'pmin' should be 0 < pmin < " "1/len(n_active_algorithm)")
 
         self.exp4p_ = Exp4P(
             query_strategies=self.query_strategies_,
@@ -155,18 +154,18 @@ class ActiveLearningByLearning(QueryStrategy):
             delta=self.delta,
             pmin=self.pmin,
             unlabeled_invert_id_idx=self.unlabeled_invert_id_idx,
-            uniform_sampler=self.uniform_sampler
+            uniform_sampler=self.uniform_sampler,
         )
         self.budget_used = 0
 
         # classifier instance
-        self.model = kwargs.pop('model', None)
+        self.model = kwargs.pop("model", None)
         if self.model is None:
             raise TypeError(
                 "__init__() missing required keyword-only argument: 'model'"
             )
 
-        random_state = kwargs.pop('random_state', None)
+        random_state = kwargs.pop("random_state", None)
         self.random_state_ = seed_random_state(random_state)
 
         self.query_dist = None
@@ -180,16 +179,15 @@ class ActiveLearningByLearning(QueryStrategy):
         model.train(self.dataset)
 
         # reward function: Importance-Weighted-Accuracy (IW-ACC) (tau, f)
-        reward = 0.
+        reward = 0.0
         for i in range(len(self.queried_hist_)):
             reward += self.W[i] * (
                 model.predict(
-                    self.dataset.data[
-                        self.queried_hist_[i]][0].reshape(1, -1)
-                    )[0] ==
-                self.dataset.data[self.queried_hist_[i]][1]
+                    self.dataset.data[self.queried_hist_[i]][0].reshape(1, -1)
+                )[0]
+                == self.dataset.data[self.queried_hist_[i]][1]
             )
-        reward /= (self.dataset.len_labeled() + self.dataset.len_unlabeled())
+        reward /= self.dataset.len_labeled() + self.dataset.len_unlabeled()
         reward /= self.T
         return reward
 
@@ -202,7 +200,7 @@ class ActiveLearningByLearning(QueryStrategy):
             self.query_dist = self.exp4p_.next(
                 self.calc_reward_fn(),
                 self.queried_hist_[-1],
-                self.dataset.data[self.queried_hist_[-1]][1]
+                self.dataset.data[self.queried_hist_[-1]][1],
             )
         return
 
@@ -211,7 +209,7 @@ class ActiveLearningByLearning(QueryStrategy):
         # Calculate the next query after updating the question asked with an
         # answer.
         ask_idx = self.unlabeled_invert_id_idx[entry_id]
-        self.W.append(1. / self.query_dist[ask_idx])
+        self.W.append(1.0 / self.query_dist[ask_idx])
         self.queried_hist_.append(entry_id)
 
     @inherit_docstring_from(QueryStrategy)
@@ -226,9 +224,7 @@ class ActiveLearningByLearning(QueryStrategy):
         while self.budget_used < self.T:
             self.calc_query()
             ask_idx = self.random_state_.choice(
-                np.arange(len(self.unlabeled_invert_id_idx)),
-                size=1,
-                p=self.query_dist
+                np.arange(len(self.unlabeled_invert_id_idx)), size=1, p=self.query_dist
             )[0]
             ask_id = self.unlabeled_entry_ids[ask_idx]
 
@@ -300,7 +296,7 @@ class Exp4P(object):
     def __init__(self, *args, **kwargs):
         """ """
         # QueryStrategy class object instances
-        self.query_strategies_ = kwargs.pop('query_strategies', None)
+        self.query_strategies_ = kwargs.pop("query_strategies", None)
         if self.query_strategies_ is None:
             raise TypeError(
                 "__init__() missing required keyword-only argument: "
@@ -311,7 +307,7 @@ class Exp4P(object):
 
         # whether to include uniform random sampler as one of underlying active
         # learning algorithms
-        self.uniform_sampler = kwargs.pop('uniform_sampler', True)
+        self.uniform_sampler = kwargs.pop("uniform_sampler", True)
 
         # n_armss
         if self.uniform_sampler:
@@ -320,25 +316,25 @@ class Exp4P(object):
             self.N = len(self.query_strategies_)
 
         # weight vector to each query_strategies, shape = (N, )
-        self.w = np.array([1. for _ in range(self.N)])
+        self.w = np.array([1.0 for _ in range(self.N)])
 
         # max iters
-        self.T = kwargs.pop('T', 100)
+        self.T = kwargs.pop("T", 100)
 
         # delta > 0
-        self.delta = kwargs.pop('delta', 0.1)
+        self.delta = kwargs.pop("delta", 0.1)
 
         # n_arms = n_models (n_query_algorithms) in ALBL
         self.K = self.N
 
         # p_min in [0, 1/n_arms]
-        self.pmin = kwargs.pop('pmin', None)
+        self.pmin = kwargs.pop("pmin", None)
         if self.pmin is None:
             self.pmin = np.sqrt(np.log(self.N) / self.K / self.T)
 
         self.exp4p_gen = self.exp4p()
 
-        self.unlabeled_invert_id_idx = kwargs.pop('unlabeled_invert_id_idx')
+        self.unlabeled_invert_id_idx = kwargs.pop("unlabeled_invert_id_idx")
         if not self.unlabeled_invert_id_idx:
             raise TypeError(
                 "__init__() missing required keyword-only argument:"
@@ -385,7 +381,7 @@ class Exp4P(object):
             # len(self.unlabeled_invert_id_idx) is the number of unlabeled data
             query = np.zeros((self.N, len(self.unlabeled_invert_id_idx)))
             if self.uniform_sampler:
-                query[-1, :] = 1. / len(self.unlabeled_invert_id_idx)
+                query[-1, :] = 1.0 / len(self.unlabeled_invert_id_idx)
             for i, model in enumerate(self.query_strategies_):
                 query[i][self.unlabeled_invert_id_idx[model.make_query()]] = 1
 
@@ -405,11 +401,9 @@ class Exp4P(object):
             yhat = rhat
             vhat = 1 / p
             self.w = self.w * np.exp(
-                self.pmin / 2 * (
-                    yhat + vhat * np.sqrt(
-                        np.log(self.N / self.delta) / self.K / self.T
-                    )
-                )
+                self.pmin
+                / 2
+                * (yhat + vhat * np.sqrt(np.log(self.N / self.delta) / self.K / self.T))
             )
 
         raise StopIteration

@@ -1,13 +1,12 @@
 """Maximum loss reduction with Maximal Confidence (MMC)
 """
-import copy
 
 import numpy as np
 from sklearn.svm import SVC
 
 from libact.base.dataset import Dataset
-from libact.base.interfaces import QueryStrategy, ContinuousModel
-from libact.utils import inherit_docstring_from, seed_random_state, zip
+from libact.base.interfaces import QueryStrategy
+from libact.utils import inherit_docstring_from, seed_random_state
 from libact.models import LogisticRegression, SklearnProbaAdapter
 from libact.models.multilabel import BinaryRelevance, DummyClf
 
@@ -60,8 +59,8 @@ class MaximumLossReductionMaximalConfidence(QueryStrategy):
     References
     ----------
     .. [1] Yang, Bishan, et al. "Effective multi-label active learning for text
-		   classification." Proceedings of the 15th ACM SIGKDD international
-		   conference on Knowledge discovery and data mining. ACM, 2009.
+                   classification." Proceedings of the 15th ACM SIGKDD international
+                   conference on Knowledge discovery and data mining. ACM, 2009.
     """
 
     def __init__(self, *args, **kwargs):
@@ -70,20 +69,30 @@ class MaximumLossReductionMaximalConfidence(QueryStrategy):
         # self.n_labels = len(self.dataset.get_labeled_entries()[0][1])
         self.n_labels = len(self.dataset.get_labeled_entries()[1][0])
 
-        random_state = kwargs.pop('random_state', None)
+        random_state = kwargs.pop("random_state", None)
         self.random_state_ = seed_random_state(random_state)
 
-        self.logreg_param = kwargs.pop('logreg_param',
-                                       {'multi_class': 'multinomial',
-                                        'solver': 'newton-cg',
-                                        'random_state': random_state})
+        self.logreg_param = kwargs.pop(
+            "logreg_param",
+            {
+                "multi_class": "multinomial",
+                "solver": "newton-cg",
+                "random_state": random_state,
+            },
+        )
         self.logistic_regression_ = LogisticRegression(**self.logreg_param)
 
-        self.br_base = kwargs.pop('br_base',
-              SklearnProbaAdapter(SVC(kernel='linear',
-                                      probability=True,
-                                      gamma="auto",
-                                      random_state=random_state)))
+        self.br_base = kwargs.pop(
+            "br_base",
+            SklearnProbaAdapter(
+                SVC(
+                    kernel="linear",
+                    probability=True,
+                    gamma="auto",
+                    random_state=random_state,
+                )
+            ),
+        )
 
     @inherit_docstring_from(QueryStrategy)
     def make_query(self):

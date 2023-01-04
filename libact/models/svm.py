@@ -3,6 +3,7 @@
 An interface for scikit-learn's C-Support Vector Classifier model.
 """
 import logging
+
 LOGGER = logging.getLogger(__name__)
 
 import numpy as np
@@ -27,8 +28,8 @@ class SVM(ContinuousModel):
 
     def __init__(self, *args, **kwargs):
         self.model = sklearn.svm.SVC(*args, **kwargs)
-        if self.model.decision_function_shape == 'ovr':
-            self.decision_function_shape = 'ovr'
+        if self.model.decision_function_shape == "ovr":
+            self.decision_function_shape = "ovr"
             # sklearn's ovr isn't real ovr
             self.model = OneVsRestClassifier(self.model)
 
@@ -39,15 +40,15 @@ class SVM(ContinuousModel):
         return self.model.predict(feature, *args, **kwargs)
 
     def score(self, testing_dataset, *args, **kwargs):
-        return self.model.score(*(testing_dataset.format_sklearn() + args),
-                                **kwargs)
+        return self.model.score(*(testing_dataset.format_sklearn() + args), **kwargs)
 
     def predict_real(self, feature, *args, **kwargs):
         dvalue = self.model.decision_function(feature, *args, **kwargs)
         if len(np.shape(dvalue)) == 1:  # n_classes == 2
             return np.vstack((-dvalue, dvalue)).T
         else:
-            if self.decision_function_shape != 'ovr':
-                LOGGER.warn("SVM model support only 'ovr' for multiclass"
-                            "predict_real.")
+            if self.decision_function_shape != "ovr":
+                LOGGER.warn(
+                    "SVM model support only 'ovr' for multiclass" "predict_real."
+                )
             return dvalue

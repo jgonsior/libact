@@ -7,6 +7,7 @@ import unittest
 
 from numpy.testing import assert_array_equal
 from sklearn import datasets
+
 try:
     from sklearn.model_selection import train_test_split
 except ImportError:
@@ -18,13 +19,13 @@ from libact.models import SVM
 
 
 class SVMIrisTestCase(unittest.TestCase):
-
     def setUp(self):
         iris = datasets.load_iris()
         X = iris.data
         y = iris.target
-        self.X_train, self.X_test, self.y_train, self.y_test = \
-            train_test_split(X, y, test_size=0.3, random_state=1126)
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+            X, y, test_size=0.3, random_state=1126
+        )
 
     def test_svm(self):
         svc_clf = SVC(gamma="auto")
@@ -32,17 +33,17 @@ class SVMIrisTestCase(unittest.TestCase):
         svm = SVM(gamma="auto")
         svm.train(Dataset(self.X_train, self.y_train))
 
-        assert_array_equal(
-            svc_clf.predict(self.X_train), svm.predict(self.X_train))
-        assert_array_equal(
-            svc_clf.predict(self.X_test), svm.predict(self.X_test))
+        assert_array_equal(svc_clf.predict(self.X_train), svm.predict(self.X_train))
+        assert_array_equal(svc_clf.predict(self.X_test), svm.predict(self.X_test))
         self.assertEqual(
             svc_clf.score(self.X_train, self.y_train),
-            svm.score(Dataset(self.X_train, self.y_train)))
+            svm.score(Dataset(self.X_train, self.y_train)),
+        )
         self.assertEqual(
             svc_clf.score(self.X_test, self.y_test),
-            svm.score(Dataset(self.X_test, self.y_test)))
+            svm.score(Dataset(self.X_test, self.y_test)),
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

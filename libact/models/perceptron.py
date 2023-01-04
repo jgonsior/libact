@@ -25,5 +25,4 @@ class Perceptron(Model):
         return self.model.predict(feature, *args, **kwargs)
 
     def score(self, testing_dataset, *args, **kwargs):
-        return self.model.score(*(testing_dataset.format_sklearn() + args),
-                                **kwargs)
+        return self.model.score(*(testing_dataset.format_sklearn() + args), **kwargs)

@@ -5,9 +5,9 @@ import copy
 import numpy as np
 
 from libact.base.dataset import Dataset
-from libact.base.interfaces import QueryStrategy, ContinuousModel
-from libact.utils import inherit_docstring_from, seed_random_state, zip
-from libact.models.multilabel import BinaryRelevance, DummyClf
+from libact.base.interfaces import QueryStrategy
+from libact.utils import inherit_docstring_from, seed_random_state
+from libact.models.multilabel import DummyClf
 
 
 class BinaryMinimization(QueryStrategy):

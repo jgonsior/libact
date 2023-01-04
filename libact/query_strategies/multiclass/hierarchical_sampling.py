@@ -123,8 +123,14 @@ class HierarchicalSampling(QueryStrategy):
            learning." ICML 2008.
     """
 
-    def __init__(self, dataset, classes, active_selecting=True,
-            subsample_qs=None, random_state=None):
+    def __init__(
+        self,
+        dataset,
+        classes,
+        active_selecting=True,
+        subsample_qs=None,
+        random_state=None,
+    ):
         super(HierarchicalSampling, self).__init__(dataset)
         X, _ = self.dataset.get_entries()
         cluster = AgglomerativeClustering()
@@ -153,8 +159,12 @@ class HierarchicalSampling(QueryStrategy):
             parent = i + self.n
             self.parent[left_child] = parent
             self.parent[right_child] = parent
-        self.left_child = np.concatenate([np.full(self.n, NO_NODE), childrens[:,0]]).astype(int)
-        self.right_child = np.concatenate([np.full(self.n, NO_NODE), childrens[:,1]]).astype(int)
+        self.left_child = np.concatenate(
+            [np.full(self.n, NO_NODE), childrens[:, 0]]
+        ).astype(int)
+        self.right_child = np.concatenate(
+            [np.full(self.n, NO_NODE), childrens[:, 1]]
+        ).astype(int)
 
         for i in range(self.n):
             node = i
@@ -175,7 +185,7 @@ class HierarchicalSampling(QueryStrategy):
         self.split = np.zeros(self.m, dtype=bool)
         self.cost = self.size.copy()
 
-        self.prunings = [self.m-1]
+        self.prunings = [self.m - 1]
 
         for i, entry in enumerate(self.dataset.data):
             if entry[1] != None:
@@ -185,9 +195,9 @@ class HierarchicalSampling(QueryStrategy):
     def update(self, entry_id, label):
         if label not in self.class_id:
             raise ValueError(
-                    'Unknown class of entry %d: %s, expected: %s' %
-                    (entry_id, label, list(self.class_id.keys()))
-                    )
+                "Unknown class of entry %d: %s, expected: %s"
+                % (entry_id, label, list(self.class_id.keys()))
+            )
         class_id = self.class_id[label]
         root_pruning = self._find_root_pruning(entry_id)
         self._update(entry_id, class_id, root_pruning)
@@ -259,7 +269,7 @@ class HierarchicalSampling(QueryStrategy):
             return self.best_label[pruning]
         if self.parent[pruning] != NO_NODE:
             return self.best_label[self.parent[pruning]]
-        return 0 # default label is 0 if no admissble label for root
+        return 0  # default label is 0 if no admissble label for root
 
     def _find_root_pruning(self, entry_id):
         node = entry_id
@@ -272,8 +282,9 @@ class HierarchicalSampling(QueryStrategy):
             return []
         if self.size[node] == 1:
             return [node]
-        return (self._find_leaves(self.left_child[node]) +
-                self._find_leaves(self.right_child[node]))
+        return self._find_leaves(self.left_child[node]) + self._find_leaves(
+            self.right_child[node]
+        )
 
     def _select_pruning(self):
         if self.active_selecting:
@@ -297,7 +308,9 @@ class HierarchicalSampling(QueryStrategy):
         if self.size[node] == 1:
             return node
         assert self.left_child[node] != NO_NODE and self.right_child[node] != NO_NODE
-        p_left = (self.size[self.left_child[node]] - self.total[self.left_child[node]]) / num_unseen_leaves
+        p_left = (
+            self.size[self.left_child[node]] - self.total[self.left_child[node]]
+        ) / num_unseen_leaves
         if self.random_state_.rand() < p_left:
             return self._sample_node(self.left_child[node])
         else:
@@ -316,27 +329,38 @@ class HierarchicalSampling(QueryStrategy):
                 mean = frac * self.size[node]
                 err = delta * self.size[node]
                 self.lower_bound[node][l] = max(self.count[node][l], mean - err)
-                self.upper_bound[node][l] = min(self.size[node] - (self.total[node] - self.count[node, l]), mean + err)
+                self.upper_bound[node][l] = min(
+                    self.size[node] - (self.total[node] - self.count[node, l]),
+                    mean + err,
+                )
 
             max_count = 0
             for l in range(self.num_class):
                 self.admissible[node, l] = True
                 for k in range(self.num_class):
-                    if l != k and self.lower_bound[node, l] <= 2 * self.upper_bound[node, k] - self.size[node]:
+                    if (
+                        l != k
+                        and self.lower_bound[node, l]
+                        <= 2 * self.upper_bound[node, k] - self.size[node]
+                    ):
                         self.admissible[node, l] = False
                 if self.admissible[node, l] and self.count[node, l] > max_count:
                     max_count = self.count[node, l]
                     self.best_label[node] = l
 
             if self.best_label[node] != NO_LABEL:
-                basic_cost = self.size[node] - self.lower_bound[node][self.best_label[node]]
+                basic_cost = (
+                    self.size[node] - self.lower_bound[node][self.best_label[node]]
+                )
             else:
                 basic_cost = self.size[node]
 
             if self.size[node] == 1:
                 self.cost[node] = basic_cost
             else:
-                split_cost = self.cost[self.left_child[node]] + self.cost[self.right_child[node]]
+                split_cost = (
+                    self.cost[self.left_child[node]] + self.cost[self.right_child[node]]
+                )
                 if split_cost < basic_cost and self.best_label[node] != NO_LABEL:
                     self.cost[node] = split_cost
                     self.split[node] = True
@@ -361,5 +385,6 @@ class HierarchicalSampling(QueryStrategy):
 
     def _get_delta(self, frac, node):
         fs_corr = 1.0 - self.total[node] / self.size[node]
-        return fs_corr / self.total[node] + \
-               np.sqrt(fs_corr * frac * (1. - frac) / self.total[node])
+        return fs_corr / self.total[node] + np.sqrt(
+            fs_corr * frac * (1.0 - frac) / self.total[node]
+        )

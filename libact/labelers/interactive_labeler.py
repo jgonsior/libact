@@ -26,22 +26,22 @@ class InteractiveLabeler(Labeler):
     """
 
     def __init__(self, **kwargs):
-        self.label_name = kwargs.pop('label_name', None)
+        self.label_name = kwargs.pop("label_name", None)
 
     @inherit_docstring_from(Labeler)
     def label(self, feature):
-        plt.imshow(feature, cmap=plt.cm.gray_r, interpolation='nearest')
+        plt.imshow(feature, cmap=plt.cm.gray_r, interpolation="nearest")
         plt.draw()
 
         banner = "Enter the associated label with the image: "
 
         if self.label_name is not None:
-            banner += str(self.label_name) + ' '
+            banner += str(self.label_name) + " "
 
         lbl = input(banner)
 
         while (self.label_name is not None) and (lbl not in self.label_name):
-            print('Invalid label, please re-enter the associated label.')
+            print("Invalid label, please re-enter the associated label.")
             lbl = input(banner)
 
         return self.label_name.index(lbl)

@@ -16,8 +16,7 @@ class TestDatasetMethods(unittest.TestCase):
         return Dataset(self.initial_X, self.initial_y)
 
     def setup_mlc_dataset(self):
-        X, Y = datasets.make_multilabel_classification(
-                n_features=5, random_state=1126)
+        X, Y = datasets.make_multilabel_classification(n_features=5, random_state=1126)
         return Dataset(X, Y)
 
     def test_label(self):
@@ -34,10 +33,11 @@ class TestDatasetMethods(unittest.TestCase):
         """test multi-label case"""
         dataset = self.setup_mlc_dataset()
         lbr = IdealLabeler(dataset)
-        ask_id = lbr.label(np.array([12., 5., 2., 11., 14.]))
+        ask_id = lbr.label(np.array([12.0, 5.0, 2.0, 11.0, 14.0]))
         np.testing.assert_array_equal(ask_id, [0, 1, 0, 0, 1])
-        ask_id = lbr.label(np.array([ 6.,  2., 21., 20.,  5.]))
+        ask_id = lbr.label(np.array([6.0, 2.0, 21.0, 20.0, 5.0]))
         np.testing.assert_array_equal(ask_id, [0, 0, 1, 0, 1])
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

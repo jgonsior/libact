@@ -10,8 +10,10 @@ from .dummy_clf import DummyClf
 from libact.base.dataset import Dataset
 from libact.base.interfaces import MultilabelModel
 
+
 def _fit_model(model, X, y):
     model.train(Dataset(X, y))
+
 
 class BinaryRelevance(MultilabelModel):
     r"""Binary Relevance
@@ -32,6 +34,7 @@ class BinaryRelevance(MultilabelModel):
            multi-label data." Data mining and knowledge discovery handbook.
            Springer US, 2009. 667-685.
     """
+
     def __init__(self, base_clf, n_jobs=1):
         self.base_clf = copy.copy(base_clf)
         self.clfs_ = None
@@ -74,10 +77,11 @@ class BinaryRelevance(MultilabelModel):
                 clf = copy.deepcopy(self.base_clf)
             self.clfs_.append(clf)
 
-        Parallel(n_jobs=self.n_jobs, backend='threading')(
+        Parallel(n_jobs=self.n_jobs, backend="threading")(
             delayed(_fit_model)(self.clfs_[i], X, Y[:, i])
-            for i in range(self.n_labels_))
-        #clf.train(Dataset(X, Y[:, i]))
+            for i in range(self.n_labels_)
+        )
+        # clf.train(Dataset(X, Y[:, i]))
 
         return self
 
@@ -98,7 +102,7 @@ class BinaryRelevance(MultilabelModel):
         if self.clfs_ is None:
             raise ValueError("Train before prediction")
         if X.shape[1] != self.n_features_:
-            raise ValueError('Given feature size does not match')
+            raise ValueError("Given feature size does not match")
 
         pred = np.zeros((X.shape[0], self.n_labels_))
         for i in range(self.n_labels_):
@@ -122,7 +126,7 @@ class BinaryRelevance(MultilabelModel):
         if self.clfs_ is None:
             raise ValueError("Train before prediction")
         if X.shape[1] != self.n_features_:
-            raise ValueError('given feature size does not match')
+            raise ValueError("given feature size does not match")
 
         pred = np.zeros((X.shape[0], self.n_labels_))
         for i in range(self.n_labels_):
@@ -146,14 +150,14 @@ class BinaryRelevance(MultilabelModel):
         if self.clfs_ is None:
             raise ValueError("Train before prediction")
         if X.shape[1] != self.n_features_:
-            raise ValueError('given feature size does not match')
+            raise ValueError("given feature size does not match")
 
         pred = np.zeros((X.shape[0], self.n_labels_))
         for i in range(self.n_labels_):
             pred[:, i] = self.clfs_[i].predict_proba(X)[:, 1]
         return pred
 
-    def score(self, testing_dataset, criterion='hamming'):
+    def score(self, testing_dataset, criterion="hamming"):
         """Return the mean accuracy on the test dataset
 
         Parameters
@@ -171,20 +175,19 @@ class BinaryRelevance(MultilabelModel):
         """
         # TODO check if data in dataset are all correct
         X, Y = testing_dataset.format_sklearn()
-        if criterion == 'hamming':
+        if criterion == "hamming":
             return np.mean(np.abs(self.predict(X) - Y).mean(axis=1))
-        elif criterion == 'f1':
+        elif criterion == "f1":
             Z = self.predict(X)
             Z = Z.astype(int)
             Y = Y.astype(int)
-            up = 2*np.sum(Z & Y, axis=1).astype(float)
+            up = 2 * np.sum(Z & Y, axis=1).astype(float)
             down1 = np.sum(Z, axis=1)
             down2 = np.sum(Y, axis=1)
 
-            down = (down1 + down2)
-            down[down==0] = 1.
-            up[down==0] = 1.
+            down = down1 + down2
+            down[down == 0] = 1.0
+            up[down == 0] = 1.0
             return np.mean(up / down)
         else:
-            raise NotImplementedError(
-                "criterion '%s' not implemented" % criterion)
+            raise NotImplementedError("criterion '%s' not implemented" % criterion)

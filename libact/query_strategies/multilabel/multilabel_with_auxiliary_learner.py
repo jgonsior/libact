@@ -4,11 +4,8 @@ import copy
 
 import numpy as np
 
-from libact.base.dataset import Dataset
-from libact.base.interfaces import QueryStrategy, ContinuousModel
-from libact.utils import inherit_docstring_from, seed_random_state, zip
-from libact.models import LogisticRegression, SVM
-from libact.models.multilabel import BinaryRelevance, DummyClf
+from libact.base.interfaces import QueryStrategy
+from libact.utils import inherit_docstring_from, seed_random_state
 
 
 class MultilabelWithAuxiliaryLearner(QueryStrategy):
@@ -65,11 +62,18 @@ class MultilabelWithAuxiliaryLearner(QueryStrategy):
     References
     ----------
     .. [1] Hung, Chen-Wei, and Hsuan-Tien Lin. "Multi-label Active Learning
-	   with Auxiliary Learner." ACML. 2011.
+           with Auxiliary Learner." ACML. 2011.
     """
 
-    def __init__(self, dataset, major_learner, auxiliary_learner,
-            criterion='hlr', b=1., random_state=None):
+    def __init__(
+        self,
+        dataset,
+        major_learner,
+        auxiliary_learner,
+        criterion="hlr",
+        b=1.0,
+        random_state=None,
+    ):
         super(MultilabelWithAuxiliaryLearner, self).__init__(dataset)
 
         self.n_labels = len(self.dataset.data[0][1])
@@ -82,7 +86,7 @@ class MultilabelWithAuxiliaryLearner(QueryStrategy):
         self.random_state_ = seed_random_state(random_state)
 
         self.criterion = criterion
-        if self.criterion not in ['hlr', 'shlr', 'mmr']:
+        if self.criterion not in ["hlr", "shlr", "mmr"]:
             raise TypeError(
                 "supported criterion are ['hlr', 'shlr', 'mmr'], the given "
                 "one is: " + self.criterion
@@ -99,29 +103,31 @@ class MultilabelWithAuxiliaryLearner(QueryStrategy):
         aux_clf = copy.deepcopy(self.auxiliary_learner)
         aux_clf.train(dataset)
 
-        if self.criterion == 'hlr':
+        if self.criterion == "hlr":
             major_pred = major_clf.predict(X_pool)
             aux_pred = aux_clf.predict(X_pool)
             score = np.abs(major_pred - aux_pred).mean(axis=1)
-        elif self.criterion in ['mmr', 'shlr']:
+        elif self.criterion in ["mmr", "shlr"]:
             major_pred = major_clf.predict(X_pool) * 2 - 1
 
-            if 'predict_real' in dir(aux_clf):
+            if "predict_real" in dir(aux_clf):
                 aux_pred = aux_clf.predict_real(X_pool)
-            elif 'predict_proba' in dir(aux_clf):
+            elif "predict_proba" in dir(aux_clf):
                 aux_pred = aux_clf.predict_proba(X_pool) * 2 - 1
             else:
-                raise AttributeError("aux_learner did not support either"
-                                     "'predict_real' or 'predict_proba'"
-                                     "method")
+                raise AttributeError(
+                    "aux_learner did not support either"
+                    "'predict_real' or 'predict_proba'"
+                    "method"
+                )
 
             loss = (major_pred * aux_pred).mean(axis=1)
-            if self.criterion == 'mmr':
-                score = (1. - major_pred * aux_pred) / 2.
+            if self.criterion == "mmr":
+                score = (1.0 - major_pred * aux_pred) / 2.0
                 score = np.sum(score, axis=1)
-            elif self.criterion == 'shlr':
+            elif self.criterion == "shlr":
                 b = self.b
-                score = (b - np.clip(major_pred * aux_pred, -b, b)) / 2. / b
+                score = (b - np.clip(major_pred * aux_pred, -b, b)) / 2.0 / b
                 score = np.sum(score, axis=1)
             else:
                 raise TypeError(

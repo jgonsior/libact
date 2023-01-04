@@ -6,7 +6,6 @@ May be exported in different formats for application on other libraries.
 """
 from __future__ import unicode_literals
 
-import random
 import numpy as np
 import scipy.sparse as sp
 
@@ -34,11 +33,13 @@ class Dataset(object):
     """
 
     def __init__(self, X=None, y=None):
-        if X is None: X = np.array([])
+        if X is None:
+            X = np.array([])
         elif not isinstance(X, sp.csr_matrix):
             X = np.array(X)
 
-        if y is None: y = []
+        if y is None:
+            y = []
         y = np.array(y)
 
         self._X = X
@@ -61,7 +62,8 @@ class Dataset(object):
         return self._X[idx], self._y[idx]
 
     @property
-    def data(self): return self
+    def data(self):
+        return self
 
     def get_labeled_mask(self):
         """
@@ -123,7 +125,7 @@ class Dataset(object):
         """
         if isinstance(self._X, np.ndarray):
             self._X = np.vstack([self._X, feature])
-        else: # sp.csr_matrix
+        else:  # sp.csr_matrix
             self._X = sp.vstack([self._X, feature])
         self._y = np.append(self._y, label)
 
@@ -195,7 +197,10 @@ class Dataset(object):
         X: numpy array or scipy matrix, shape = ( n_sample labeled, n_features )
         y: list, shape = (n_samples lebaled)
         """
-        return self._X[self.get_labeled_mask()], self._y[self.get_labeled_mask()].tolist()
+        return (
+            self._X[self.get_labeled_mask()],
+            self._y[self.get_labeled_mask()].tolist(),
+        )
 
     def get_unlabeled_entries(self):
         """
@@ -217,23 +222,26 @@ class Dataset(object):
         ----------
         sample_size
         """
-        idx = np.random.choice(np.where(self.get_labeled_mask())[0],
-                               size=sample_size, replace=replace )
+        idx = np.random.choice(
+            np.where(self.get_labeled_mask())[0], size=sample_size, replace=replace
+        )
         return Dataset(self._X[idx], self._y[idx])
 
 
 def import_libsvm_sparse(filename):
     """Imports dataset file in libsvm sparse format"""
     from sklearn.datasets import load_svmlight_file
+
     X, y = load_svmlight_file(filename)
     return Dataset(X.toarray(), y)
 
 
 def import_scipy_mat(filename):
     from scipy.io import loadmat
+
     data = loadmat(filename)
-    X = data['X']
-    y = data['y']
+    X = data["X"]
+    y = data["y"]
     zipper = list(zip(X, y))
     np.random.shuffle(zipper)
     X, y = zip(*zipper)

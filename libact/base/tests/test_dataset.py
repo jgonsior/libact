@@ -96,7 +96,8 @@ class TestDatasetMethods(unittest.TestCase):
         for entry_s in zip(*dataset_s.get_labeled_entries()):
             for idx, entry in enumerate(zip(pool_X, pool_y)):
                 if (
-                    np.array_equal(entry_s[0], entry[0]) and entry_s[1] == entry[1]
+                    np.array_equal(entry_s[0], entry[0])
+                    and entry_s[1] == entry[1]
                     and idx not in used_indexes
                 ):
                     used_indexes.add(idx)
@@ -107,5 +108,5 @@ class TestDatasetMethods(unittest.TestCase):
             dataset_s = dataset.labeled_uniform_sample(4, replace=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

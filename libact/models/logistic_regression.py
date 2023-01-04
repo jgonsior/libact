@@ -38,4 +38,3 @@ class LogisticRegression(ProbabilisticModel):
 
     def predict_proba(self, feature, *args, **kwargs):
         return self.model.predict_proba(feature, *args, **kwargs)
-

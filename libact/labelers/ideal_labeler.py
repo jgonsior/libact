@@ -29,7 +29,6 @@ class IdealLabeler(Labeler):
 
     @inherit_docstring_from(Labeler)
     def label(self, feature):
-        yy = self.y[np.where([np.array_equal(x, feature)
-                              for x in self.X])[0]]
+        yy = self.y[np.where([np.array_equal(x, feature) for x in self.X])[0]]
         ind = np.arange(len(yy))
         return yy[np.random.choice(ind, 1)[0]]

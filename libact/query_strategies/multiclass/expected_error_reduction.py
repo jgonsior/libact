@@ -9,6 +9,7 @@ from libact.base.interfaces import QueryStrategy, ProbabilisticModel
 from libact.base.dataset import Dataset
 from libact.utils import inherit_docstring_from, seed_random_state
 
+
 class EER(QueryStrategy):
     """Expected Error Reduction(EER)
 
@@ -54,7 +55,7 @@ class EER(QueryStrategy):
            Wisconsin, Madison 52.55-66 (2010): 11.
     """
 
-    def __init__(self, dataset, model=None, loss='log', random_state=None):
+    def __init__(self, dataset, model=None, loss="log", random_state=None):
         super(EER, self).__init__(dataset)
 
         self.model = model
@@ -63,14 +64,11 @@ class EER(QueryStrategy):
                 "__init__() missing required keyword-only argument: 'model'"
             )
         if not isinstance(self.model, ProbabilisticModel):
-            raise TypeError(
-                "model has to be a ProbabilisticModel"
-            )
+            raise TypeError("model has to be a ProbabilisticModel")
         self.loss = loss
-        if self.loss not in ['01', 'log']:
+        if self.loss not in ["01", "log"]:
             raise TypeError(
-                "supported methods are ['01', 'log'], the given one "
-                "is: " + self.loss
+                "supported methods are ['01', 'log'], the given one " "is: " + self.loss
             )
 
         self.random_state_ = seed_random_state(random_state)
@@ -95,9 +93,9 @@ class EER(QueryStrategy):
                 m.train(Dataset(np.vstack((X, [x])), y + [yi]))
                 p = m.predict_proba(X_pool)
 
-                if self.loss == '01':  # 0/1 loss
-                    score.append(proba[i, yi] * np.sum(1-np.max(p, axis=1)))
-                elif self.loss == 'log': # log loss
+                if self.loss == "01":  # 0/1 loss
+                    score.append(proba[i, yi] * np.sum(1 - np.max(p, axis=1)))
+                elif self.loss == "log":  # log loss
                     score.append(proba[i, yi] * -np.sum(p * np.log(p)))
             scores.append(np.sum(score))
 
@@ -125,9 +123,9 @@ class EER(QueryStrategy):
                 m.train(Dataset(np.vstack((X, [x])), y + [yi]))
                 p = m.predict_proba(X_pool)
 
-                if self.loss == '01':  # 0/1 loss
-                    score.append(proba[i, yi] * np.sum(1-np.max(p, axis=1)))
-                elif self.loss == 'log': # log loss
+                if self.loss == "01":  # 0/1 loss
+                    score.append(proba[i, yi] * np.sum(1 - np.max(p, axis=1)))
+                elif self.loss == "log":  # log loss
                     score.append(proba[i, yi] * -np.sum(p * np.log(p)))
             scores.append(np.sum(score))
 

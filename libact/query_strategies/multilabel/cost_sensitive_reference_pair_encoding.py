@@ -9,8 +9,8 @@ from sklearn.neighbors import NearestNeighbors
 from joblib import Parallel, delayed
 
 from libact.base.dataset import Dataset
-from ...base.interfaces import QueryStrategy, ContinuousModel
-from ...utils import inherit_docstring_from, zip, seed_random_state
+from ...base.interfaces import QueryStrategy
+from ...utils import seed_random_state
 
 
 class CostSensitiveReferencePairEncoding(QueryStrategy):
@@ -71,13 +71,26 @@ class CostSensitiveReferencePairEncoding(QueryStrategy):
            and Data Mining. Springer, Cham, 2018.
     """
 
-    def __init__(self, dataset, scoring_fn, model, base_model, n_models=100,
-                 n_jobs=1, random_state=None):
+    def __init__(
+        self,
+        dataset,
+        scoring_fn,
+        model,
+        base_model,
+        n_models=100,
+        n_jobs=1,
+        random_state=None,
+    ):
         super(CostSensitiveReferencePairEncoding, self).__init__(dataset=dataset)
 
         self.model_ = model
-        self.csrpe_ = CSRPE(scoring_fn=scoring_fn, base_clf=base_model,
-                            n_clfs=n_models, n_jobs=n_jobs, random_state=random_state)
+        self.csrpe_ = CSRPE(
+            scoring_fn=scoring_fn,
+            base_clf=base_model,
+            n_clfs=n_models,
+            n_jobs=n_jobs,
+            random_state=random_state,
+        )
 
         self.random_state_ = seed_random_state(random_state)
 
@@ -94,20 +107,19 @@ class CostSensitiveReferencePairEncoding(QueryStrategy):
         Z = self.csrpe_.predicted_code(X_pool)
         predZ = self.csrpe_.encode(predY)
 
-        dist = paired_distances(Z, predZ, metric=hamming) # z1 z2
-        dist2 = self.csrpe_.predict_dist(X_pool) # z1 zt
-        #dist3 = self.csrpe.distance(predZ) # z2 zt
+        dist = paired_distances(Z, predZ, metric=hamming)  # z1 z2
+        dist2 = self.csrpe_.predict_dist(X_pool)  # z1 zt
+        # dist3 = self.csrpe.distance(predZ) # z2 zt
 
         dist = dist + dist2
-        #dist = dist + dist3
+        # dist = dist + dist3
 
-        ask_id = self.random_state_.choice(
-            np.where(np.isclose(dist, np.max(dist)))[0])
+        ask_id = self.random_state_.choice(np.where(np.isclose(dist, np.max(dist)))[0])
 
         return unlabeled_entry_ids[ask_id]
 
 
-class BinaryCLF():
+class BinaryCLF:
     def __init__(self, base_clf, scoring_fn, rep_label, random_state=None):
         self.base_clf = base_clf
         self.scoring_fn = scoring_fn
@@ -120,7 +132,7 @@ class BinaryCLF():
             raise ValueError
         score0 = self.scoring_fn(Y, np.tile(self.rep_label[0], (len(Y), 1)))
         score1 = self.scoring_fn(Y, np.tile(self.rep_label[1], (len(Y), 1)))
-        lbl = (((score1 - score0) > 0) + 0.0)
+        lbl = ((score1 - score0) > 0) + 0.0
         return lbl
 
     def train(self, X, y):
@@ -129,7 +141,7 @@ class BinaryCLF():
 
         score0 = self.scoring_fn(y, np.tile(self.rep_label[0], (self.n_samples, 1)))
         score1 = self.scoring_fn(y, np.tile(self.rep_label[1], (self.n_samples, 1)))
-        lbl = (((score1 - score0) > 0) + 0.0)
+        lbl = ((score1 - score0) > 0) + 0.0
 
         weight = np.abs(score1 - score0)
         if np.sum(weight) > 0:
@@ -148,13 +160,21 @@ class BinaryCLF():
         return self.base_clf_.predict(X)
 
 
-class CSRPE():
-    def __init__(self, scoring_fn, base_clf, n_clfs, n_jobs,
-                 metric='euclidean', random_state=None):
+class CSRPE:
+    def __init__(
+        self,
+        scoring_fn,
+        base_clf,
+        n_clfs,
+        n_jobs,
+        metric="euclidean",
+        random_state=None,
+    ):
         self.scoring_fn = scoring_fn
         self.base_clf = base_clf
-        self.nn_ = NearestNeighbors(1, algorithm='ball_tree',
-                metric=metric, n_jobs=n_jobs)
+        self.nn_ = NearestNeighbors(
+            1, algorithm="ball_tree", metric=metric, n_jobs=n_jobs
+        )
         self.n_clfs = n_clfs
         self.random_state_ = seed_random_state(random_state)
 
@@ -164,18 +184,24 @@ class CSRPE():
 
     def _build_clfs(self, Y):
         self.n_labels = np.shape(Y)[1]
-        self.clfs = [BinaryCLF(self.base_clf, self.scoring_fn,
-                     rep_label=self.random_state_.randint(0, 2, (2, self.n_labels)))
-                     for i in range(self.n_clfs)]
+        self.clfs = [
+            BinaryCLF(
+                self.base_clf,
+                self.scoring_fn,
+                rep_label=self.random_state_.randint(0, 2, (2, self.n_labels)),
+            )
+            for i in range(self.n_clfs)
+        ]
 
     def encode(self, Y):
         Y = np.asarray(Y)
         if self.clfs is None:
             self._build_clfs(Y)
         if Y.shape[1] != self.n_labels:
-            raise ValueError("The given label size does not match"
-                             " number of labels. Expect %d but get %d"
-                             % (self.n_labels, Y.shape[1]))
+            raise ValueError(
+                "The given label size does not match"
+                " number of labels. Expect %d but get %d" % (self.n_labels, Y.shape[1])
+            )
         encoded = np.zeros((Y.shape[0], self.n_clfs))
         for i, clf in enumerate(self.clfs):
             encoded[:, i] = clf.enc(Y)
@@ -183,8 +209,9 @@ class CSRPE():
 
     def predicted_code(self, X):
         if self.clfs is None:
-            raise ValueError("CSRPE should be trained before calling"
-                             "`predicted_code` method.")
+            raise ValueError(
+                "CSRPE should be trained before calling" "`predicted_code` method."
+            )
 
         X = np.asarray(X)
         encoded = np.zeros((X.shape[0], self.n_clfs))
@@ -200,15 +227,17 @@ class CSRPE():
             self._build_clfs(Y)
 
         if Y.shape[1] != self.n_labels:
-            raise ValueError("The given label size does not match "
-                             " number of labels. Expect %d but get %d"
-                             % (self.n_labels, Y.shape[1]))
+            raise ValueError(
+                "The given label size does not match "
+                " number of labels. Expect %d but get %d" % (self.n_labels, Y.shape[1])
+            )
 
         self.tokens = Y
 
         def train_single_clf_helper(clf, X, Y):
             clf.train(X, Y)
-        Parallel(n_jobs=self.n_jobs, backend='threading')(
+
+        Parallel(n_jobs=self.n_jobs, backend="threading")(
             delayed(train_single_clf_helper)(self.clfs[i], X, Y)
             for i in range(self.n_clfs)
         )
