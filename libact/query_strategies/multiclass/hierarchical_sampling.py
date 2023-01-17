@@ -223,7 +223,7 @@ class HierarchicalSampling(QueryStrategy):
             _, scores = self.sub_qs.make_query(return_score=True)
             leaves = set(self._find_leaves(pruning))
             leaf_scores = [(score, node) for node, score in scores if node in leaves]
-            ask_id = max(leaf_scores)[1]
+            ask_id = max(leaf_scores)[1:batch_size]
         return ask_id
 
     def report_entry_label(self, entry_id):
