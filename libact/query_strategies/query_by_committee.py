@@ -213,3 +213,31 @@ class QueryByCommittee(QueryStrategy):
             )
 
         return unlabeled_entry_ids[ask_idx]
+
+    def make_n_queries(self, batch_size):
+        dataset = self.dataset
+        unlabeled_entry_ids, X_pool = dataset.get_unlabeled_entries()
+
+        if self.disagreement == "vote":
+            # Let the trained students vote for unlabeled data
+            votes = np.zeros((len(X_pool), len(self.students)))
+            for i, student in enumerate(self.students):
+                votes[:, i] = student.predict(X_pool)
+
+            vote_entropy = self._vote_disagreement(votes)
+            ask_idx = self.random_state_.choice(
+                np.where(np.isclose(vote_entropy, np.max(vote_entropy)))[0:batch_size]
+            )
+
+        elif self.disagreement == "kl_divergence":
+            proba = []
+            for student in self.students:
+                proba.append(student.predict_proba(X_pool))
+            proba = np.array(proba).transpose(1, 0, 2).astype(float)
+
+            avg_kl = self._kl_divergence_disagreement(proba)
+            ask_idx = self.random_state_.choice(
+                np.where(np.isclose(avg_kl, np.max(avg_kl)))[0:batch_size]
+            )
+
+        return unlabeled_entry_ids[ask_idx]

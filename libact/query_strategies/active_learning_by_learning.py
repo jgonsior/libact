@@ -236,6 +236,31 @@ class ActiveLearningByLearning(QueryStrategy):
 
         raise ValueError("Out of query budget")
 
+    def make_n_queries(self, batch_size):
+        dataset = self.dataset
+        try:
+            unlabeled_entry_ids, _ = dataset.get_unlabeled_entries()
+        except ValueError:
+            # might be no more unlabeled data left
+            return
+
+        ret = []
+        while self.budget_used < self.T and len(ret) < batch_size:
+            self.calc_query()
+            ask_idx = self.random_state_.choice(
+                np.arange(len(self.unlabeled_invert_id_idx)), size=1, p=self.query_dist
+            )[0]
+            ask_id = self.unlabeled_entry_ids[ask_idx]
+
+            if ask_id in unlabeled_entry_ids:
+                self.budget_used += 1
+                ret.append(ask_id)
+            else:
+                self.update(ask_id, dataset.data[ask_id][1])
+        if len(ret) == batch_size:
+            return ret
+        raise ValueError("Out of query budget")
+
 
 class Exp4P(object):
 
