@@ -5,8 +5,10 @@ import os
 from setuptools import setup, Extension
 import sys
 
-BUILD_HINTSVM = int(os.environ.get("LIBACT_BUILD_HINTSVM", 1))
-BUILD_VARIANCE_REDUCTION = int(os.environ.get("LIBACT_BUILD_VARIANCE_REDUCTION", 1))
+BUILD_HINTSVM = 0  # int(os.environ.get("LIBACT_BUILD_HINTSVM", 1))
+BUILD_VARIANCE_REDUCTION = (
+    0  # int(os.environ.get("LIBACT_BUILD_VARIANCE_REDUCTION", 1))
+)
 
 
 on_rtd = os.environ.get("READTHEDOCS", None) == "True"
@@ -18,8 +20,8 @@ if on_rtd:
     install_requires = []
     tests_require = []
 else:
-    from Cython.Build import cythonize
-    from Cython.Distutils import build_ext
+    # from Cython.Build import cythonize
+    # from Cython.Distutils import build_ext
     import numpy
     import numpy.distutils
 
